@@ -9,7 +9,7 @@ window.CONFIG = {
       url: 'https://script.google.com/macros/s/AKfycbxHZzTiaxcWWmwaIcbd5VFe2BCh9nzYG0Egwnx2aQvKllIL_ZCJNm4qu0tpMimLKE9y/exec',
       logo: 'img/montevideu_3d.png', cor: '#1F5C6B' },
     { id: 'dom', nome: 'DOM Multicomércio', curto: 'DOM', cnpj: '61265684000148',
-      url: 'COLAR_AQUI_A_URL_DO_APPS_SCRIPT_DOM',
+      url: 'https://script.google.com/macros/s/AKfycbxxMdt93kx_PNh28ca3LMqEtydm_cjeVUJIyjt0NY0yIUc9xzVxZj1OkrIBYIYSSblu/exec',
       logo: 'img/dom_3d.png', cor: '#B3262B' }
   ],
   LOGO_GRUPO: 'img/montevi_group.png',
