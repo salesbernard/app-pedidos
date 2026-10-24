@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pedidos Montevi Group</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="img/icone_192.png">
+  <link rel="stylesheet" href="app.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="config.js"></script>
+  <script src="busca.js"></script>
+  <script src="paginas.js"></script>
+  <script src="vencimento.js"></script>
+</head>
+<body>
+
+<!-- 1. Abertura MONTEVI GROUP -->
+<section id="tela-abertura-grupo" class="tela abertura ativa">
+  <img id="logo-grupo" alt="Montevi Group">
+</section>
+
+<!-- 2. Login -->
+<section id="tela-login" class="tela centro">
+  <div class="cartao login">
+    <img id="logo-grupo-login" class="logo-login" alt="Montevi Group">
+    <h1>Pedidos dos vendedores</h1>
+    <p class="cinza">Entre com a sua conta Google da empresa.</p>
+    <div id="botao-google"></div>
+    <p id="login-erro" class="erro"></p>
+  </div>
+</section>
+
+<!-- 3. Escolha da empresa -->
+<section id="tela-empresa" class="tela centro">
+  <div class="cartao">
+    <h2>Escolha a empresa</h2>
+    <div id="lista-empresas" class="lista-empresas"></div>
+  </div>
+</section>
+
+<!-- 4. Abertura da empresa -->
+<section id="tela-abertura-empresa" class="tela abertura">
+  <img id="logo-empresa-abertura" alt="">
+  <p id="carregando-dados" class="cinza escondido">Carregando catálogo e clientes…</p>
+</section>
+
+<!-- Topo (telas internas) -->
+<header id="topo" class="escondido">
+  <button id="topo-logo" class="topo-logo" title="Trocar empresa"><img alt=""></button>
+  <div class="topo-empresa">
+    <strong id="topo-nome"></strong>
+    <button id="topo-trocar" class="link">Trocar empresa</button>
+  </div>
+  <nav class="topo-nav">
+    <button id="nav-novo" class="aba">Novo pedido</button>
+    <button id="nav-pedidos" class="aba">Pedidos</button>
+    <button id="nav-solic" class="aba escondido">Solicitações <span id="nav-solic-n" class="contador escondido"></span></button>
+  </nav>
+  <div class="topo-direita">
+    <span id="topo-usuario"></span>
+    <span id="topo-atualizacao" class="cinza"></span>
+    <button id="topo-sair" class="link">Sair</button>
+  </div>
+</header>
+
+<!-- 5. Tela inicial -->
+<section id="tela-inicio" class="tela interna">
+  <div class="opcoes-inicio">
+    <button id="op-anexar" class="opcao">
+      <span class="icone">📎</span>
+      <strong>Anexar arquivo</strong>
+      <span class="cinza">PDF, foto ou planilha Excel do cliente</span>
+    </button>
+    <button id="op-criar" class="opcao">
+      <span class="icone">✏️</span>
+      <strong>Criar no app</strong>
+      <span class="cinza">Digitar ou colar os itens do Excel</span>
+    </button>
+  </div>
+  <input id="arquivo" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.csv" hidden>
+  <div id="soltar" class="soltar">ou arraste o arquivo para cá</div>
+</section>
+
+<!-- 6. Seletor de páginas (PDF) / abas (Excel) -->
+<section id="tela-paginas" class="tela interna">
+  <div class="barra-titulo">
+    <div>
+      <h2 id="paginas-titulo">Escolha as páginas para enviar</h2>
+      <p class="cinza" id="paginas-explicacao">O app já marcou as páginas com dados do cliente e itens. Clique numa página para marcar ou desmarcar.</p>
+    </div>
+    <div class="botoes">
+      <button id="paginas-todas" class="secundario">Marcar todas</button>
+      <button id="paginas-cancelar" class="secundario">Cancelar</button>
+      <button id="paginas-enviar" class="primario">Ler páginas marcadas</button>
+    </div>
+  </div>
+  <div id="grade-paginas" class="grade-paginas"></div>
+</section>
+
+<!-- 7. Lendo -->
+<section id="tela-lendo" class="tela centro interna">
+  <div class="cartao centro-texto">
+    <div class="girando"></div>
+    <h2>Lendo o documento…</h2>
+    <p class="cinza" id="lendo-detalhe">Isso pode levar até 1 minuto.</p>
+  </div>
+</section>
+
+<!-- 8. Erro de leitura / empresa -->
+<section id="tela-erro" class="tela centro interna">
+  <div class="cartao centro-texto">
+    <h2 id="erro-titulo">Não foi possível continuar</h2>
+    <p id="erro-texto"></p>
+    <div class="botoes centro-botoes" id="erro-botoes"></div>
+  </div>
+</section>
+
+<!-- 9. Criar no app (grade) -->
+<section id="tela-criar" class="tela interna">
+  <div class="barra-titulo">
+    <h2>Criar pedido no app</h2>
+    <div class="botoes">
+      <button id="criar-cancelar" class="secundario">Cancelar</button>
+      <button id="criar-conferir" class="primario">Conferir pedido</button>
+    </div>
+  </div>
+  <div class="bloco">
+    <label>Cliente</label>
+    <div id="criar-cliente"></div>
+  </div>
+  <p class="cinza">Dica: copie as linhas no Excel (descrição, quantidade, preço) e cole na grade com Ctrl+V.</p>
+  <table class="grade" id="grade-criar">
+    <thead><tr><th>#</th><th>Descrição</th><th>Qtd.</th><th>Preço un.</th><th>Total</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <button id="criar-linha" class="secundario">+ Adicionar linha</button>
+</section>
+
+<!-- 10. Conferência -->
+<section id="tela-conferencia" class="tela interna">
+  <div class="barra-titulo">
+    <h2 id="conf-titulo">Conferir pedido</h2>
+    <div class="botoes">
+      <button id="conf-ver-doc" class="secundario">Ver documento</button>
+      <button id="conf-cancelar" class="secundario">Descartar</button>
+      <button id="conf-salvar" class="secundario" title="Fica pendente na aba Pedidos">Salvar pedido</button>
+      <button id="conf-continuar" class="primario" title="Escolher o que vai para o Bling agora">Emitir agora</button>
+    </div>
+  </div>
+  <div id="conf-avisos"></div>
+  <div class="conf-layout">
+    <div class="conf-principal">
+      <div class="bloco" id="conf-cliente"></div>
+      <div class="bloco campos" id="conf-campos"></div>
+      <div class="bloco">
+        <h3>Itens</h3>
+        <div class="rolagem"><table class="grade" id="conf-itens">
+          <thead><tr><th>#</th><th>Item do cliente</th><th>Produto do cadastro</th><th>Qtd.</th><th>Un</th><th>Preço un.</th><th>Desc. %</th><th>Total</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <div id="conf-ignorados"></div>
+      </div>
+      <div class="bloco resumo" id="conf-resumo"></div>
+      <div class="bloco" id="conf-saldo"></div>
+    </div>
+    <aside class="conf-documento escondido" id="conf-documento"></aside>
+  </div>
+</section>
+
+<!-- 11. Aba Pedidos -->
+<section id="tela-pedidos" class="tela interna">
+  <div class="barra-titulo">
+    <div><h2>Pedidos</h2><p class="cinza" id="ped-resumo"></p></div>
+    <div class="botoes"><button id="ped-atualizar" class="secundario">Atualizar</button></div>
+  </div>
+  <div class="bloco filtros">
+    <div class="campo"><label>Situação</label>
+      <select id="ped-situacao">
+        <option value="pendentes">Pendentes (a enviar)</option>
+        <option value="Aguardando envio">Aguardando envio</option>
+        <option value="Saldo a emitir">Saldo a emitir</option>
+        <option value="Saldo editado">Saldo editado</option>
+        <option value="Enviado">Enviado</option>
+        <option value="Cancelado">Cancelado</option>
+        <option value="todas">Todas</option>
+      </select></div>
+    <div class="campo"><label>De</label><input type="date" id="ped-de"></div>
+    <div class="campo"><label>Até</label><input type="date" id="ped-ate"></div>
+    <div class="campo"><label>Cliente</label><input type="text" id="ped-cliente" placeholder="Nome, CNPJ, nº ou OC"></div>
+    <div class="campo"><label>Valor mínimo (R$)</label><input type="text" id="ped-min"></div>
+    <div class="campo"><label>Valor máximo (R$)</label><input type="text" id="ped-max"></div>
+    <div class="campo"><label>Ordenar por</label>
+      <select id="ped-ordem">
+        <option value="espera">Maior tempo de espera</option>
+        <option value="recentes">Mais recentes</option>
+        <option value="maior">Maior valor</option>
+        <option value="menor">Menor valor</option>
+      </select></div>
+    <div class="campo"><label>&nbsp;</label><button id="ped-limpar" class="secundario">Limpar filtros</button></div>
+  </div>
+  <div id="ped-lista"></div>
+</section>
+
+<!-- 12. Envio ao Bling (completo ou parte) -->
+<section id="tela-envio" class="tela interna">
+  <div class="barra-titulo">
+    <div>
+      <h2>Enviar ao Bling</h2>
+      <p class="cinza">Marque só o que vai emitir nota agora. O que não for enviado fica pendente na aba Pedidos.</p>
+    </div>
+    <div class="botoes">
+      <button id="envio-voltar" class="secundario">Salvar sem enviar</button>
+      <button id="envio-todos" class="secundario">Enviar completo</button>
+      <button id="envio-enviar" class="primario">Enviar ao Bling</button>
+    </div>
+  </div>
+  <div class="bloco" id="envio-cliente"></div>
+  <div class="bloco campos" id="envio-venc"></div>
+  <div class="bloco">
+    <div class="rolagem"><table class="grade" id="envio-itens">
+      <thead><tr><th></th><th>Produto</th><th>Qtd. do pedido</th><th>Já enviado</th><th>Pendente</th><th>Enviar agora</th><th>Preço un.</th><th>Total</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+  <div class="bloco resumo" id="envio-resumo"></div>
+</section>
+
+<!-- 13. Solicitações (só o Bernard) -->
+<section id="tela-solic" class="tela interna">
+  <div class="barra-titulo"><h2>Solicitações</h2></div>
+  <div id="solic-lista"></div>
+</section>
+
+<!-- Janela de escolha de produto -->
+<div id="janela" class="janela escondido">
+  <div class="janela-caixa">
+    <div class="janela-topo"><h3 id="janela-titulo"></h3><button class="link" id="janela-fechar">Fechar</button></div>
+    <div id="janela-corpo"></div>
+  </div>
+</div>
+
+<div id="aviso-rodape" class="aviso-rodape escondido"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

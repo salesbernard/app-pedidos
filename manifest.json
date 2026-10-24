@@ -1,0 +1,20 @@
+{
+  "name": "Pedidos Montevi Group",
+  "short_name": "Pedidos",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1F5C6B",
+  "icons": [
+    {
+      "src": "img/icone_192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "img/icone_512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
