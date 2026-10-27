@@ -10,7 +10,7 @@ window.CONFIG = {
       logo: 'img/montevideu_3d.png', cor: '#1F5C6B' },
     { id: 'dom', nome: 'DOM Multicomércio', curto: 'DOM', cnpj: '61265684000148',
       url: 'https://script.google.com/macros/s/AKfycbxxMdt93kx_PNh28ca3LMqEtydm_cjeVUJIyjt0NY0yIUc9xzVxZj1OkrIBYIYSSblu/exec',
-      logo: 'img/dom_3d.png', cor: '#B3262B' }
+      logo: 'img/dom_3d.png', cor: '#B3262B', emailPeloServidor: true, emailRemetente: 'ffiscaldom@gmail.com' }
   ],
   LOGO_GRUPO: 'img/montevi_group.png',
   // Modelo da mensagem de logística no WhatsApp (1, 2 ou 3)

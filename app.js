@@ -1117,7 +1117,7 @@
 
   async function prepararGmailSeNecessario(P) {
     const temEmail = querEmail(P);
-    if (!temEmail || (GM.token && Date.now() < GM.expira)) return true;
+    if (!temEmail || E.empresa.emailPeloServidor || (GM.token && Date.now() < GM.expira)) return true;
     try { await conectarGmail(false); return true; }
     catch (e) {
       return confirm('O Gmail não foi conectado (' + e.message + '). Enviar ao Bling mesmo assim, sem o e-mail ao cliente?');
@@ -1176,6 +1176,10 @@
   }
 
   async function enviarPeloGmail(o) {
+    if (E.empresa.emailPeloServidor) {
+      await chamar(E.empresa, 'enviarEmailEmpresa', { dados: { para: o.para, cc: o.cc, assunto: o.assunto, texto: o.texto, anexos: o.anexos, logo: o.logo } });
+      return {};
+    }
     const raw = montarMime(o);
     for (let tentativa = 1; tentativa <= 2; tentativa++) {
       const tok = tentativa === 1 ? await tokenGmail() : await conectarGmail(false);
@@ -1213,8 +1217,8 @@
         <div class="campo" style="margin-top:10px"><label>Assunto</label><input type="text" id="em-assunto" value="${esc(doc.assunto)}"></div>
         <div class="campo" style="margin-top:10px"><label>Mensagem</label><textarea id="em-texto" style="min-height:190px">${esc(doc.texto)}</textarea></div>
         <div style="margin-top:10px">${doc.anexos.map((a, i) => `📎 <button class="link" data-anexo="${i}">${esc(a.nome)}</button>`).join('<br>')} <span class="cinza">(clique para baixar e conferir)</span></div>
-        <div class="botoes" style="margin-top:14px"><button class="primario" id="em-enviar">Enviar pelo meu Gmail</button><button class="secundario" id="em-fechar">Agora não</button></div>
-        <p class="cinza" style="font-size:12px">O e-mail sai da sua conta do Gmail e fica nos seus enviados. Na primeira vez, o Google pede para autorizar.</p>`);
+        <div class="botoes" style="margin-top:14px"><button class="primario" id="em-enviar">${E.empresa.emailPeloServidor ? 'Enviar e-mail' : 'Enviar pelo meu Gmail'}</button><button class="secundario" id="em-fechar">Agora não</button></div>
+        <p class="cinza" style="font-size:12px">${E.empresa.emailPeloServidor ? 'O e-mail sai pela conta da empresa (' + esc(E.empresa.emailRemetente || '') + ') e você recebe uma cópia.' : 'O e-mail sai da sua conta do Gmail e fica nos seus enviados. Na primeira vez, o Google pede para autorizar.'}</p>`);
       corpo.querySelectorAll('#em-para [data-i]').forEach(cb => cb.onchange = () => { para[+cb.dataset.i].marcado = cb.checked; });
       corpo.querySelectorAll('[data-anexo]').forEach(b => b.onclick = () => { const a = doc.anexos[+b.dataset.anexo]; baixarArquivo(a.base64, a.nome, 'application/pdf'); });
       corpo.querySelector('#em-fechar').onclick = fecharJanela;
@@ -1240,7 +1244,7 @@
             texto: corpo.querySelector('#em-texto').value, anexos: doc.anexos, logo: doc.logoBase64 });
           chamar(E.empresa, 'registrarEmail', { id, entrega: k, dados: { para: dest, cc: doc.cc, idGmail: r && r.id } }).catch(() => {});
           fecharJanela(); avisar('E-mail enviado para ' + dest.join(', ') + '.', 5000);
-        } catch (e) { avisar(e.message, 8000); b.disabled = false; b.textContent = 'Enviar pelo meu Gmail'; }
+        } catch (e) { avisar(e.message, 8000); b.disabled = false; b.textContent = E.empresa.emailPeloServidor ? 'Enviar e-mail' : 'Enviar pelo meu Gmail'; }
       };
     };
     desenhar();
