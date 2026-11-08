@@ -3,10 +3,11 @@
   'use strict';
 
   const C = window.CONFIG;
-  const TELAS_INTERNAS = ['tela-inicio', 'tela-paginas', 'tela-lendo', 'tela-erro', 'tela-criar', 'tela-conferencia', 'tela-pedidos', 'tela-envio', 'tela-solic'];
+  const TELAS_INTERNAS = ['tela-inicio', 'tela-paginas', 'tela-lendo', 'tela-erro', 'tela-criar', 'tela-conferencia', 'tela-pedidos', 'tela-envio', 'tela-solic', 'tela-orcamentos'];
   const E = {
     token: null, usuario: null, liberadas: [], empresa: null, dados: {},
-    pedido: null, arquivo: null, docUrl: null, docTexto: null, paginas: null
+    pedido: null, arquivo: null, docUrl: null, docTexto: null, paginas: null,
+    contexto: 'pedido'   // 'pedido' ou 'orcamento': para onde vão o anexo, o "Criar no app" e o "Voltar"
   };
 
   /* ---------------- utilidades ---------------- */
@@ -50,7 +51,10 @@
     document.querySelectorAll('.tela').forEach(t => t.classList.toggle('ativa', t.id === id));
     $('#topo').classList.toggle('escondido', TELAS_INTERNAS.indexOf(id) < 0);
     $('#nav-pedidos').classList.toggle('ativo', id === 'tela-pedidos' || id === 'tela-envio');
-    $('#nav-novo').classList.toggle('ativo', ['tela-inicio', 'tela-paginas', 'tela-lendo', 'tela-criar'].indexOf(id) >= 0);
+    const noOrc = id === 'tela-orcamentos' ||
+      (E.contexto === 'orcamento' && ['tela-paginas', 'tela-lendo', 'tela-criar', 'tela-conferencia', 'tela-erro'].indexOf(id) >= 0);
+    $('#nav-orc').classList.toggle('ativo', noOrc);
+    $('#nav-novo').classList.toggle('ativo', !noOrc && ['tela-inicio', 'tela-paginas', 'tela-lendo', 'tela-criar'].indexOf(id) >= 0);
     $('#nav-solic').classList.toggle('ativo', id === 'tela-solic');
     window.scrollTo(0, 0);
   }
@@ -153,7 +157,7 @@
       return;
     }
     montarTopo();
-    irInicio();
+    novoPedido();
   }
 
   // Recarrega catálogo e clientes sem deixar a tela sem dados: os antigos valem até chegarem os novos
@@ -194,7 +198,13 @@
     location.reload();
   }
 
-  function irInicio() { E.pedido = null; $('#arquivo').value = ''; mostrar('tela-inicio'); }
+  // Volta ao começo do que se está fazendo: tela inicial do pedido ou a aba Orçamentos
+  function irInicio() {
+    E.pedido = null; $('#arquivo').value = '';
+    if (E.contexto === 'orcamento') { abrirOrcamentos(); return; }
+    mostrar('tela-inicio');
+  }
+  function novoPedido() { E.contexto = 'pedido'; irInicio(); }
 
   function mostrarErro(titulo, texto, botoes) {
     $('#erro-titulo').textContent = titulo;
@@ -433,7 +443,7 @@
       }
     };
     identificarCliente();
-    perguntarModo();
+    if (E.contexto === 'orcamento') prepararOrcamentoNovo(); else perguntarModo();
   }
 
   // Antes de conferir os itens: emitir agora (escolhe o que vai para o Bling) ou só salvar o pedido
@@ -572,6 +582,17 @@
     $('#conf-continuar').classList.toggle('escondido', P.modo === 'salvar');
     $('#conf-continuar').textContent = P.modo === 'emitir' ? 'Enviar ao Bling' : 'Emitir agora';
     if (P.modo === 'emitir') $('#conf-titulo').textContent = 'Conferir e emitir agora';
+    if (!P.ehOrcamento && P.orcamento && P.orcamento.numero) $('#conf-titulo').textContent += ' (do orçamento nº ' + P.orcamento.numero + ')';
+    const orc = !!P.ehOrcamento, convertido = orc && P.situacao === 'Convertido em pedido';
+    if (orc) {
+      $('#conf-titulo').textContent = P.id ? 'Orçamento nº ' + (P.numero || P.id) + (P.situacao ? ' — ' + P.situacao : '') +
+        (convertido && P.pedido ? ' (pedido nº ' + P.pedido.numero + ', só leitura)' : '') : 'Conferir orçamento';
+      $('#conf-salvar').classList.add('escondido');
+      $('#conf-continuar').classList.add('escondido');
+    }
+    $('#conf-orc-salvar').classList.toggle('escondido', !orc || convertido);
+    $('#conf-orc-email').classList.toggle('escondido', !orc || convertido);
+    $('#conf-orc-pedido').classList.toggle('escondido', !orc || P.situacao !== 'Aprovado');
     $('#conf-documento').classList.add('escondido');
     $('#conf-documento').innerHTML = '';
     $('#conf-ver-doc').classList.toggle('escondido', !E.docUrl && !E.docTexto);
@@ -601,7 +622,8 @@
       let etiqueta = '';
       if (P.clienteSituacao === 'cadastrado') etiqueta = '<span class="etiqueta">Cadastrado</span>';
       else if (P.clienteSituacao === 'filial_nova') etiqueta = '<span class="etiqueta amarela">Filial nova de ' + esc(c.filialDe[1]) + '</span>';
-      else if (c.novo) etiqueta = '<span class="etiqueta amarela">Cliente novo: vai como solicitação para o Bernard</span>';
+      else if (c.novo) etiqueta = P.ehOrcamento ? '<span class="etiqueta amarela">Cliente novo: vira solicitação para o Bernard quando o orçamento virar pedido</span>'
+        : '<span class="etiqueta amarela">Cliente novo: vai como solicitação para o Bernard</span>';
       let bling = '';
       if (P.blingStatus === 'buscando') bling = '<span class="cinza">Buscando endereço no Bling…</span>';
       else if (P.blingStatus === 'nao_achou') bling = '<span class="etiqueta amarela">Não encontrado no Bling</span>';
@@ -611,7 +633,7 @@
           <div class="cinza">${esc(c.nome || '')}${c.cnpj ? ' · CNPJ ' + fmtCnpj(c.cnpj) : ''}${c.vendedor ? ' · Vendedor do cadastro: ' + esc(c.vendedor) : ''}</div>
           ${docTxt}<div>${bling}</div>
         </div><button class="secundario pequeno" id="cli-trocar">Trocar cliente</button></div>`;
-      html += '<div class="emails"><label class="cinza" style="display:block;margin-top:10px">E-mails para o pedido (todos os cadastrados, de todas as filiais):</label>';
+      html += '<div class="emails"><label class="cinza" style="display:block;margin-top:10px">E-mails para o ' + (P.ehOrcamento ? 'orçamento' : 'pedido') + ' (todos os cadastrados, de todas as filiais):</label>';
       if (!P.emails.length) html += '<span class="cinza">Nenhum e-mail cadastrado. </span>';
       P.emails.forEach((e, i) => { html += `<label><input type="checkbox" data-email="${i}" ${e.marcado ? 'checked' : ''}> ${esc(e.email)}</label>`; });
       html += `<div style="display:flex;gap:6px;margin-top:6px;max-width:420px"><input type="text" id="email-novo" placeholder="Acrescentar outro e-mail"><button class="secundario pequeno" id="email-add">Acrescentar</button></div></div>`;
@@ -700,16 +722,18 @@
     else if (P.enderecoDoDocumento) origemEnd = '<div class="cinza" style="font-size:12px">Endereço do documento (cliente não encontrado no Bling). Confira.</div>';
     const docEnd = c.enderecoDoc && c.enderecoDoc !== c.enderecoEntrega
       ? `<div class="original">No documento: ${esc(c.enderecoDoc)}</div>` : '';
+    const orc = !!P.ehOrcamento;   // orçamento: comprador e endereço não são obrigatórios; tem validade
     $('#conf-campos').innerHTML =
-      campo('comprador', 'Comprador(a)', c.comprador, { obrigatorio: true, dica: 'Falta no documento: informe o comprador.' }) +
-      campo('numeroCliente', 'Nº do pedido / OC do cliente', c.numeroCliente) +
+      campo('comprador', orc ? 'A/C (comprador)' : 'Comprador(a)', c.comprador, orc ? {} : { obrigatorio: true, dica: 'Falta no documento: informe o comprador.' }) +
+      campo('numeroCliente', orc ? 'Nº da cotação / solicitação do cliente' : 'Nº do pedido / OC do cliente', c.numeroCliente) +
+      (orc ? `<div class="campo"><label>Validade do orçamento</label><input type="date" data-campo="validade" value="${esc(c.validade || '')}"></div>` : '') +
       campo('data', 'Data do documento', c.data) +
       campo('unidade', 'Unidade / filial do cliente', c.unidade) +
       campo('condicaoPagamento', 'Condição de pagamento (do documento)', c.condicaoPagamento) +
       campo('prazoEntrega', 'Prazo de entrega', c.prazoEntrega) +
       campo('tipoFrete', 'Frete (CIF/FOB)', c.tipoFrete) +
       campo('frete', 'Valor do frete (R$)', moeda(c.frete)) +
-      campo('enderecoEntrega', 'Endereço de entrega', c.enderecoEntrega, { area: true, largo: true, obrigatorio: true,
+      campo('enderecoEntrega', 'Endereço de entrega', c.enderecoEntrega, { area: true, largo: true, obrigatorio: !orc,
         dica: 'Informe o endereço de entrega.', extra: origemEnd + docEnd }) +
       campo('observacoes', 'Observações', c.observacoes, { area: true, largo: true }) +
       (P.modo === 'emitir' && P.cliente ? htmlVencimento(P) + htmlCaixaEmail(P) : '');
@@ -844,7 +868,7 @@
       const total = ativos.reduce((s, l) => s + totalLinha(l), 0);
       blocos = [['Nº de itens', moeda(ativos.length)], ['Soma das qtdes', moeda(somaQtd)],
                 ['Desconto dos itens', 'R$ ' + moeda(bruto - total)], ['Total dos itens', 'R$ ' + moeda(total)],
-                ['Frete', 'R$ ' + moeda(frete)], ['Total do pedido', 'R$ ' + moeda(total + frete)]];
+                ['Frete', 'R$ ' + moeda(frete)], [P.ehOrcamento ? 'Total do orçamento' : 'Total do pedido', 'R$ ' + moeda(total + frete)]];
     }
     $('#conf-resumo').innerHTML = blocos.map(([r, v], i, a) =>
       `<div class="${i === a.length - 1 ? 'total' : ''}"><span>${r}</span><strong>${v}</strong></div>`).join('');
@@ -949,10 +973,10 @@
   function pendencias() {
     const P = E.pedido, faltas = [];
     if (!P.cliente) faltas.push('escolha o cliente');
-    if (!String(P.campos.comprador || '').trim()) faltas.push('informe o comprador');
-    if (!String(P.campos.enderecoEntrega || '').trim()) faltas.push('informe o endereço de entrega');
+    if (!P.ehOrcamento && !String(P.campos.comprador || '').trim()) faltas.push('informe o comprador');
+    if (!P.ehOrcamento && !String(P.campos.enderecoEntrega || '').trim()) faltas.push('informe o endereço de entrega');
     const ativos = P.itens.filter(l => !l.riscado);
-    if (!ativos.length) faltas.push('o pedido não tem itens');
+    if (!ativos.length) faltas.push(P.ehOrcamento ? 'o orçamento não tem itens' : 'o pedido não tem itens');
     if (P.modo === 'emitir') {
       if (!ativos.some(l => qtdAgora(l) > 0)) faltas.push('nenhum item para emitir agora (use "Salvar pedido" se nada vai agora)');
       if (!P.venc || !P.venc.escolhido) faltas.push('informe o vencimento');
@@ -972,6 +996,7 @@
       id: P.id || null, origem: P.origem, arquivo: P.arquivoNome, leitor: P.leitor,
       cliente: P.cliente, clienteBling: P.clienteBling, clienteDoc: P.clienteDoc,
       emails: P.emails, emailsExtras: P.emailsExtras, campos: P.campos, avisos: P.avisos || [],
+      orcamento: P.ehOrcamento ? null : (P.orcamento || null),
       itens: P.itens.map(l => ({ id: l.id, original: l.original, produto: l.produto, nota: l.nota,
         escolhaManual: l.escolhaManual, itemNovo: l.itemNovo, descricaoEditada: l.descricaoEditada || null, quantidade: l.quantidade, preco: l.preco,
         desconto: l.desconto, riscado: l.riscado, enviada: l.enviada || 0 }))
@@ -1019,7 +1044,8 @@
   function prepararConferencia() {
     $('#conf-ver-doc').onclick = alternarDocumento;
     $('#conf-cancelar').onclick = () => {
-      if (E.pedido && E.pedido.id) { if (confirm('Sair sem salvar as alterações?')) abrirPedidos(); }
+      if (E.pedido && E.pedido.ehOrcamento) { if (confirm(E.pedido.id ? 'Sair sem salvar as alterações?' : 'Descartar este orçamento?')) abrirOrcamentos(); }
+      else if (E.pedido && E.pedido.id) { if (confirm('Sair sem salvar as alterações?')) abrirPedidos(); }
       else if (confirm('Descartar este pedido?')) irInicio();
     };
     const acao = async (botao, depois) => {
@@ -1041,6 +1067,7 @@
       if (E.pedido.modo === 'emitir') emitirAgora();
       else acao($('#conf-continuar'), () => abrirEnvio());
     };
+    prepararBotoesOrcamento();
   }
 
   async function emitirAgora() {
@@ -1059,13 +1086,13 @@
     const b = $('#conf-continuar'); b.disabled = true; b.textContent = 'Enviando…';
     try {
       const r = await chamar(E.empresa, 'salvarEEnviar', { pedido: serializarPedido(), itens, vencimento: vencimentoParaEnvio(P) });
-      E.listaDesatualizada = true; E.pedido = null;
+      E.listaDesatualizada = true; E.pedido = null; E.contexto = 'pedido';
       const p = r.pedido;
       telaSucessoEnvio(r, querEmail(P));
     } catch (e) {
       if (/ficou salvo/.test(e.message)) {
-        E.listaDesatualizada = true; E.pedido = null;
-        mostrarErro('O Bling não aceitou o envio', e.message, [['Ver pedidos', abrirPedidos], ['Novo pedido', irInicio]]);
+        E.listaDesatualizada = true; E.pedido = null; E.contexto = 'pedido';
+        mostrarErro('O Bling não aceitou o envio', e.message, [['Ver pedidos', abrirPedidos], ['Novo pedido', novoPedido]]);
       } else avisar('Não consegui enviar: ' + e.message, 8000);
     } finally { b.disabled = false; if (E.pedido) renderResumo(); }
   }
@@ -1075,7 +1102,7 @@
     const p = r.pedido, k = (p.envios || []).length - 1;
     const base = `Pedido nº ${p.numero}: proposta comercial nº ${r.numeroBling || r.idBling} criada no Bling da ${E.empresa.curto}.` +
       (p.totalPendente > 0 ? ` Ficou pendente R$ ${moeda(p.totalPendente)} na aba Pedidos.` : ' Não ficou nada pendente.');
-    const botoes = [['Logística', () => abrirLogistica(p, k)], ['Ver pedidos', abrirPedidos], ['Novo pedido', irInicio]];
+    const botoes = [['Logística', () => abrirLogistica(p, k)], ['Ver pedidos', abrirPedidos], ['Novo pedido', novoPedido]];
     const para = (p.emails || []).filter(e => e.marcado).map(e => e.email);
     if (!para.length) {
       mostrarErro('Proposta enviada ao Bling', base + ' O cliente não tem e-mail cadastrado: o e-mail não foi enviado.', botoes);
@@ -1202,14 +1229,15 @@
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
   }
 
-  async function abrirEmail(id, k) {
-    const corpo0 = abrirJanela('E-mail ao cliente', '<p class="cinza">Gerando o PDF do pedido…</p>');
+  // orc = true: e-mail do orçamento (mesmo envio dos pedidos: Gmail do vendedor ou conta da empresa)
+  async function abrirEmail(id, k, orc) {
+    const corpo0 = abrirJanela('E-mail ao cliente', '<p class="cinza">Gerando o PDF do ' + (orc ? 'orçamento' : 'pedido') + '…</p>');
     let doc;
-    try { doc = await chamar(E.empresa, 'documentoEnvio', { id, entrega: k }); }
+    try { doc = orc ? await chamar(E.empresa, 'documentoOrcamento', { id }) : await chamar(E.empresa, 'documentoEnvio', { id, entrega: k }); }
     catch (e) { corpo0.innerHTML = `<div class="aviso erro">${esc(e.message)}</div>`; return; }
     const para = doc.para.map(e => ({ email: e, marcado: true }));
     const desenhar = () => {
-      const corpo = abrirJanela('E-mail ao cliente — pedido nº ' + doc.numero, `
+      const corpo = abrirJanela('E-mail ao cliente — ' + (orc ? 'orçamento' : 'pedido') + ' nº ' + doc.numero, `
         <div class="campo"><label>Para</label><div class="emails" id="em-para">${para.map((e, i) =>
           `<label><input type="checkbox" data-i="${i}" ${e.marcado ? 'checked' : ''}> ${esc(e.email)}</label>`).join('') || '<span class="cinza">Nenhum e-mail cadastrado.</span>'}</div>
           <div style="display:flex;gap:6px;margin-top:6px"><input type="text" id="em-novo" placeholder="Acrescentar outro e-mail"><button class="secundario pequeno" id="em-add">Acrescentar</button></div></div>
@@ -1229,7 +1257,7 @@
         if (!para.some(e => e.email === v)) para.push({ email: v, marcado: true });
         const gerente = E.usuario && E.usuario.papel === 'gerente';
         if (confirm('Salvar ' + v + ' no cadastro do cliente?' + (gerente ? '' : ' Vai como solicitação para o Bernard aprovar.'))) {
-          chamar(E.empresa, 'solicitar', { tipo: 'e-mail', dados: { valor: v, idPedido: id } })
+          chamar(E.empresa, 'solicitar', { tipo: 'e-mail', dados: orc ? { valor: v, idOrcamento: id } : { valor: v, idPedido: id } })
             .then(r => avisar(r.gravado ? 'E-mail salvo no cadastro do cliente.' : 'Solicitação enviada ao Bernard.'))
             .catch(e => avisar('Não consegui registrar a solicitação: ' + e.message, 6000));
         }
@@ -1242,7 +1270,10 @@
         try {
           const r = await enviarPeloGmail({ para: dest, cc: doc.cc, assunto: corpo.querySelector('#em-assunto').value,
             texto: corpo.querySelector('#em-texto').value, anexos: doc.anexos, logo: doc.logoBase64 });
-          chamar(E.empresa, 'registrarEmail', { id, entrega: k, dados: { para: dest, cc: doc.cc, idGmail: r && r.id } }).catch(() => {});
+          const dados = { para: dest, cc: doc.cc, idGmail: r && r.id };
+          if (orc) chamar(E.empresa, 'registrarEmailOrcamento', { id, dados })
+            .then(() => { if (!E.pedido && $('#tela-orcamentos').classList.contains('ativa')) abrirOrcamentos(); }).catch(() => {});
+          else chamar(E.empresa, 'registrarEmail', { id, entrega: k, dados }).catch(() => {});
           fecharJanela(); avisar('E-mail enviado para ' + dest.join(', ') + '.', 5000);
         } catch (e) { avisar(e.message, 8000); b.disabled = false; b.textContent = E.empresa.emailPeloServidor ? 'Enviar e-mail' : 'Enviar pelo meu Gmail'; }
       };
@@ -1354,7 +1385,7 @@
   E.filtro = Object.assign({}, FILTRO_PADRAO);
 
   async function abrirPedidos() {
-    E.pedido = null;
+    E.pedido = null; E.contexto = 'pedido';
     mostrar('tela-pedidos');
     $('#ped-lista').innerHTML = '<p class="cinza">Carregando pedidos…</p>';
     try {
@@ -1457,6 +1488,8 @@
 
   function abrirCriar() {
     G.linhas = []; G.cliente = null;
+    $('#criar-titulo').textContent = E.contexto === 'orcamento' ? 'Criar orçamento no app' : 'Criar pedido no app';
+    $('#criar-conferir').textContent = E.contexto === 'orcamento' ? 'Conferir orçamento' : 'Conferir pedido';
     for (let i = 0; i < 5; i++) G.linhas.push({ descricao: '', produto: null, nota: 0, quantidade: 0, preco: 0 });
     renderClienteCriar();
     renderGrade();
@@ -1600,7 +1633,7 @@
     };
     escolherCliente(G.cliente, G.cliente.novo ? 'novo' : 'escolhido');
     if (G.cliente.novo) E.pedido.cliente.novo = true;
-    perguntarModo();
+    if (E.contexto === 'orcamento') prepararOrcamentoNovo(); else perguntarModo();
   }
 
   /* ---------------- logística: mensagem pronta para o grupo do WhatsApp ---------------- */
@@ -1943,13 +1976,222 @@
     desenhar();
   }
 
+  /* ---------------- aba Orçamentos (nada vai para o Bling) ----------------
+   * Importar PDF/foto/planilha (mesma leitura dos pedidos) ou criar no app (mesma grade).
+   * Situações: Rascunho → Enviado (e-mail) → Aprovado / Recusado → Convertido em pedido.
+   * "Transformar em pedido" monta um pedido novo com os dados do orçamento e segue o caminho normal
+   * (Emitir agora / Salvar pedido); o servidor liga o pedido ao orçamento quando o pedido é salvo. */
+  const ORC_ABERTOS = ['Rascunho', 'Enviado', 'Aprovado'];
+  const FILTRO_ORC_PADRAO = { situacao: 'abertos', de: '', ate: '', cliente: '', ordem: 'recentes' };
+  E.filtroOrc = Object.assign({}, FILTRO_ORC_PADRAO);
+
+  function hojeISO() { return Vencimento.iso(new Date()); }
+  function validadePadrao() {
+    const cfg = E.empresa && E.empresa.info && E.empresa.info.orcamento;
+    const dias = cfg ? Number(cfg.validadeDias) || 0 : 7;
+    if (!dias) return '';
+    const d = new Date(); d.setDate(d.getDate() + dias);
+    return Vencimento.iso(d);
+  }
+
+  // Depois da leitura do documento ou do "Criar no app": vai direto para a conferência do orçamento
+  function prepararOrcamentoNovo() {
+    const P = E.pedido;
+    P.ehOrcamento = true; P.modo = 'orcamento';
+    if (!P.campos.validade) P.campos.validade = validadePadrao();
+    // cotação do cliente costuma vir sem preço: usa o preço do cadastro
+    P.itens.forEach(l => { if (!(l.preco > 0) && l.produto && Number(l.produto[4]) > 0) l.preco = Number(l.produto[4]); });
+    abrirConferencia();
+  }
+
+  function carregarOrcamentoSalvo(o) {
+    carregarPedidoSalvo(o);
+    E.pedido.ehOrcamento = true; E.pedido.modo = 'orcamento';
+    return E.pedido;
+  }
+
+  async function salvarOrcamento() {
+    const P = E.pedido;
+    const r = await chamar(E.empresa, 'salvarOrcamento', { orcamento: serializarPedido() });
+    const o = r.orcamento;
+    P.id = o.id; P.numero = o.numero; P.situacao = o.situacao;
+    return o;
+  }
+
+  function prepararBotoesOrcamento() {
+    const acaoOrc = async (botao, depois) => {
+      const f = pendencias();
+      if (f.length) { avisar('Antes de continuar: ' + f.slice(0, 4).join('; ') + (f.length > 4 ? '…' : '.'), 7000); return; }
+      const texto = botao.textContent; botao.disabled = true; botao.textContent = 'Salvando…';
+      try { const o = await salvarOrcamento(); botao.disabled = false; botao.textContent = texto; depois(o); }
+      catch (e) { avisar('Não consegui salvar: ' + e.message, 7000); botao.disabled = false; botao.textContent = texto; }
+    };
+    $('#conf-orc-salvar').onclick = () => acaoOrc($('#conf-orc-salvar'), o => {
+      avisar('Orçamento nº ' + o.numero + ' salvo na aba Orçamentos.');
+      abrirOrcamentos();
+    });
+    $('#conf-orc-email').onclick = () => acaoOrc($('#conf-orc-email'), o => {
+      abrirOrcamentos();
+      abrirEmail(o.id, null, true);
+    });
+    $('#conf-orc-pedido').onclick = () => acaoOrc($('#conf-orc-pedido'), o => transformarEmPedido(o));
+  }
+
+  // Pedido novo com os dados do orçamento aprovado: segue o caminho normal do pedido
+  function transformarEmPedido(o) {
+    if (o.situacao !== 'Aprovado') { avisar('Só orçamento aprovado vira pedido. Marque como aprovado primeiro.', 6000); return; }
+    const campos = Object.assign({}, o.campos || {});
+    delete campos.validade;
+    carregarPedidoSalvo(Object.assign({}, o, {
+      id: null, numero: null, situacao: null, envios: [], historico: [], pedido: null, emailsEnviados: null, campos,
+      itens: (o.itens || []).filter(l => !l.riscado).map(l => Object.assign({}, l, { enviada: 0, emitir: l.quantidade, cortado: false }))
+    }));
+    const P = E.pedido;
+    P.ehOrcamento = false; P.modo = null; P.origem = 'orcamento';
+    P.orcamento = { id: o.id, numero: o.numero };
+    E.contexto = 'orcamento';   // "Cancelar" volta para a aba Orçamentos
+    perguntarModo();
+  }
+
+  async function abrirOrcamentos() {
+    E.pedido = null; E.contexto = 'orcamento';
+    $('#arquivo').value = '';
+    mostrar('tela-orcamentos');
+    $('#orc-lista').innerHTML = '<p class="cinza">Carregando orçamentos…</p>';
+    try {
+      const j = await chamar(E.empresa, 'listarOrcamentos');
+      E.listaOrc = j.orcamentos || []; E.veTodosOrc = j.veTodos;
+      renderOrcamentos();
+    } catch (e) {
+      $('#orc-lista').innerHTML = `<div class="aviso erro">${esc(e.message)}</div>`;
+    }
+  }
+
+  function renderOrcamentos() {
+    const f = E.filtroOrc;
+    const hoje = hojeISO();
+    let lista = (E.listaOrc || []).filter(o => {
+      const sit = o['Situação'];
+      if (f.situacao === 'abertos' && ORC_ABERTOS.indexOf(sit) < 0) return false;
+      if (f.situacao !== 'abertos' && f.situacao !== 'todas' && sit !== f.situacao) return false;
+      const dia = String(o['Criado em'] || '').slice(0, 10);
+      if (f.de && dia < f.de) return false;
+      if (f.ate && dia > f.ate) return false;
+      if (f.cliente) {
+        const alvo = Busca.normalizar(o['Cliente'] + ' ' + o['CNPJ'] + ' ' + o['Nº do orçamento'] + ' ' + o['Nº da cotação do cliente'] + ' ' + o['Nº do pedido']);
+        if (Busca.normalizar(f.cliente).split(' ').some(t => alvo.indexOf(t) < 0)) return false;
+      }
+      return true;
+    });
+    const ord = {
+      recentes: (a, b) => String(b['Criado em']).localeCompare(String(a['Criado em'])),
+      antigos: (a, b) => String(a['Criado em']).localeCompare(String(b['Criado em'])),
+      maior: (a, b) => (Number(b['Total do orçamento']) || 0) - (Number(a['Total do orçamento']) || 0),
+      menor: (a, b) => (Number(a['Total do orçamento']) || 0) - (Number(b['Total do orçamento']) || 0)
+    }[f.ordem];
+    lista.sort(ord);
+    const soma = lista.reduce((s, o) => s + (Number(o['Total do orçamento']) || 0), 0);
+    $('#orc-resumo').textContent = `${lista.length} orçamento(s) · R$ ${moeda(soma)} · orçamentos não vão para o Bling`;
+    if (!lista.length) { $('#orc-lista').innerHTML = '<p class="cinza">Nenhum orçamento com esses filtros.</p>'; return; }
+    const etiq = s => ({ 'Rascunho': 'cinza', 'Enviado': 'amarela', 'Aprovado': 'verde', 'Recusado': 'vermelha' }[s] || '');
+    const bt = (acao, rot, cls) => `<button class="${cls || 'secundario'} pequeno" data-acao="${acao}">${rot}</button>`;
+    const acoes = o => {
+      const sit = o['Situação'];
+      if (sit === 'Rascunho') return bt('email', 'Enviar e-mail', 'primario') + ' ' + bt('abrir', 'Abrir / editar') + ' ' + bt('aprovar', 'Cliente aprovou') + ' <button class="link" data-acao="recusar">Cliente recusou</button>';
+      if (sit === 'Enviado') return bt('aprovar', 'Cliente aprovou', 'primario') + ' ' + bt('abrir', 'Abrir / editar') + ' ' + bt('email', 'Reenviar e-mail') + ' <button class="link" data-acao="recusar">Cliente recusou</button>';
+      if (sit === 'Aprovado') return bt('converter', 'Transformar em pedido', 'primario') + ' ' + bt('abrir', 'Abrir / editar') + ' ' + bt('pdf', 'PDF') + ' <button class="link" data-acao="recusar">Cliente recusou</button>';
+      if (sit === 'Recusado') return bt('abrir', 'Ver / editar') + ' ' + bt('reabrir', 'Reabrir');
+      return bt('pedido', 'Ver pedido nº ' + esc(o['Nº do pedido']), 'primario') + ' ' + bt('abrir', 'Ver') + ' ' + bt('pdf', 'PDF');
+    };
+    $('#orc-lista').innerHTML = `<div class="rolagem"><table class="grade"><thead><tr><th>Nº</th><th>Criado em</th><th>Cliente</th><th>Cotação do cliente</th>
+      ${E.veTodosOrc ? '<th>Vendedor</th>' : ''}<th>Total</th><th>Validade</th><th>Situação</th><th>Pedido</th><th></th></tr></thead><tbody>` +
+      lista.map(o => {
+        const sit = o['Situação'], val = String(o['Validade'] || '').slice(0, 10);
+        const vencido = val && val < hoje && ORC_ABERTOS.indexOf(sit) >= 0;
+        return `<tr data-id="${esc(o['ID'])}" data-pedido="${esc(o['ID do pedido'] || '')}" data-numero="${esc(o['Nº do orçamento'])}">
+          <td><strong>${esc(o['Nº do orçamento'])}</strong></td><td>${fmtData(o['Criado em'])}</td>
+          <td><strong>${esc(o['Cliente'])}</strong><div class="cinza" style="font-size:12px">${fmtCnpj(o['CNPJ'])}</div></td>
+          <td>${esc(o['Nº da cotação do cliente'])}</td>${E.veTodosOrc ? `<td>${esc(o['Vendedor'])}</td>` : ''}
+          <td class="num">R$ ${moeda(o['Total do orçamento'])}</td>
+          <td>${val ? dataBR(val) : '—'}${vencido ? ' <span class="etiqueta vermelha">vencido</span>' : ''}</td>
+          <td><span class="etiqueta ${etiq(sit)}">${esc(sit)}</span>${Number(o['E-mails enviados']) ? `<div class="cinza" style="font-size:12px">${esc(o['E-mails enviados'])} e-mail(s)</div>` : ''}</td>
+          <td>${esc(o['Nº do pedido'] || '')}</td>
+          <td style="white-space:nowrap">${acoes(o)}</td></tr>`;
+      }).join('') + '</tbody></table></div>';
+    $('#orc-lista').querySelectorAll('[data-acao]').forEach(b => b.onclick = () => {
+      const tr = b.closest('tr');
+      acaoOrcamento(tr.dataset.id, b.dataset.acao, { pedido: tr.dataset.pedido, numero: tr.dataset.numero }, b);
+    });
+  }
+
+  async function mudarSituacaoOrc(id, situacao, motivo) {
+    const r = await chamar(E.empresa, 'situacaoOrcamento', { id, situacao, motivo: motivo || '' });
+    return r.orcamento;
+  }
+
+  async function acaoOrcamento(id, acao, info, botao) {
+    try {
+      if (acao === 'email') { abrirEmail(id, null, true); return; }
+      if (acao === 'pdf') {
+        if (botao) botao.disabled = true;
+        const doc = await chamar(E.empresa, 'documentoOrcamento', { id });
+        doc.anexos.forEach(x => baixarArquivo(x.base64, x.nome, 'application/pdf'));
+        if (botao) botao.disabled = false;
+        return;
+      }
+      if (acao === 'pedido') { if (info.pedido) { E.contexto = 'pedido'; acaoPedido(info.pedido, 'abrir'); } return; }
+      if (acao === 'aprovar') {
+        if (!confirm('O cliente aprovou o orçamento nº ' + info.numero + '?')) return;
+        const o = await mudarSituacaoOrc(id, 'Aprovado');
+        if (confirm('Orçamento nº ' + o.numero + ' aprovado. Transformar em pedido agora?')) { transformarEmPedido(o); return; }
+        avisar('Orçamento aprovado. Use "Transformar em pedido" quando quiser.');
+        abrirOrcamentos(); return;
+      }
+      if (acao === 'recusar') {
+        const motivo = prompt('Orçamento nº ' + info.numero + ' recusado pelo cliente. Escreva o motivo (opcional):', '');
+        if (motivo === null) return;
+        await mudarSituacaoOrc(id, 'Recusado', motivo);
+        avisar('Orçamento marcado como recusado.'); abrirOrcamentos(); return;
+      }
+      if (acao === 'reabrir') { await mudarSituacaoOrc(id, 'Rascunho'); avisar('Orçamento reaberto como rascunho.'); abrirOrcamentos(); return; }
+      const j = await chamar(E.empresa, 'abrirOrcamento', { id });
+      if (acao === 'converter') { transformarEmPedido(j.orcamento); return; }
+      carregarOrcamentoSalvo(j.orcamento);
+      abrirConferencia();
+    } catch (e) { if (botao) botao.disabled = false; avisar(e.message, 7000); }
+  }
+
+  function prepararOrcamentos() {
+    const f = E.filtroOrc;
+    const campos = { 'orc-situacao': 'situacao', 'orc-de': 'de', 'orc-ate': 'ate', 'orc-cliente': 'cliente', 'orc-ordem': 'ordem' };
+    Object.keys(campos).forEach(idc => {
+      const el = document.getElementById(idc);
+      el.value = f[campos[idc]];
+      el.oninput = el.onchange = () => { f[campos[idc]] = el.value; renderOrcamentos(); };
+    });
+    $('#orc-limpar').onclick = () => { Object.assign(f, FILTRO_ORC_PADRAO); prepararOrcamentos(); renderOrcamentos(); };
+    $('#orc-atualizar').onclick = abrirOrcamentos;
+    $('#orc-anexar').onclick = () => { E.contexto = 'orcamento'; $('#arquivo').click(); };
+    $('#orc-criar').onclick = () => { E.contexto = 'orcamento'; abrirCriar(); };
+    const zona = $('#tela-orcamentos');
+    zona.addEventListener('dragover', e => { e.preventDefault(); $('#orc-soltar').classList.add('sobre'); });
+    zona.addEventListener('dragleave', () => $('#orc-soltar').classList.remove('sobre'));
+    zona.addEventListener('drop', e => {
+      e.preventDefault(); $('#orc-soltar').classList.remove('sobre');
+      const arqs = e.dataTransfer.files;
+      if (arqs.length > 1) { avisar('Envie um documento por vez.'); return; }
+      if (arqs[0]) { E.contexto = 'orcamento'; tratarArquivo(arqs[0]); }
+    });
+  }
+
   /* ---------------- ligações ---------------- */
   function ligar() {
     $('#topo-logo').onclick = trocarEmpresa;
     $('#topo-trocar').onclick = trocarEmpresa;
     $('#topo-sair').onclick = sair;
     $('#op-criar').onclick = abrirCriar;
-    $('#nav-novo').onclick = () => { if (!E.pedido || confirm('Sair deste pedido sem salvar?')) irInicio(); };
+    $('#nav-novo').onclick = () => { if (!E.pedido || confirm('Sair deste pedido sem salvar?')) novoPedido(); };
+    $('#nav-orc').onclick = () => { if (!E.pedido || confirm('Sair sem salvar?')) abrirOrcamentos(); };
     $('#nav-pedidos').onclick = () => { if (!E.pedido || confirm('Sair deste pedido sem salvar?')) abrirPedidos(); };
     $('#nav-solic').onclick = () => { if (!E.pedido || confirm('Sair deste pedido sem salvar?')) abrirSolicitacoes(); };
     $('#paginas-todas').onclick = () => {
@@ -1969,6 +2211,7 @@
     prepararAnexo();
     prepararConferencia();
     prepararPedidos();
+    prepararOrcamentos();
   }
 
   ligar();

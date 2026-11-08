@@ -58,6 +58,7 @@
   <nav class="topo-nav">
     <button id="nav-novo" class="aba">Novo pedido</button>
     <button id="nav-pedidos" class="aba">Pedidos</button>
+    <button id="nav-orc" class="aba">Orçamentos</button>
     <button id="nav-solic" class="aba escondido">Solicitações <span id="nav-solic-n" class="contador escondido"></span></button>
   </nav>
   <div class="topo-direita">
@@ -122,7 +123,7 @@
 <!-- 9. Criar no app (grade) -->
 <section id="tela-criar" class="tela interna">
   <div class="barra-titulo">
-    <h2>Criar pedido no app</h2>
+    <h2 id="criar-titulo">Criar pedido no app</h2>
     <div class="botoes">
       <button id="criar-cancelar" class="secundario">Cancelar</button>
       <button id="criar-conferir" class="primario">Conferir pedido</button>
@@ -149,6 +150,9 @@
       <button id="conf-cancelar" class="secundario">Descartar</button>
       <button id="conf-salvar" class="secundario" title="Fica pendente na aba Pedidos">Salvar pedido</button>
       <button id="conf-continuar" class="primario" title="Escolher o que vai para o Bling agora">Emitir agora</button>
+      <button id="conf-orc-salvar" class="secundario escondido" title="Fica na aba Orçamentos (não vai para o Bling)">Salvar orçamento</button>
+      <button id="conf-orc-email" class="primario escondido" title="Salva e abre o e-mail com o PDF do orçamento">Salvar e enviar por e-mail</button>
+      <button id="conf-orc-pedido" class="primario escondido" title="Cria o pedido a partir deste orçamento">Transformar em pedido</button>
     </div>
   </div>
   <div id="conf-avisos"></div>
@@ -227,6 +231,51 @@
     </table></div>
   </div>
   <div class="bloco resumo" id="envio-resumo"></div>
+</section>
+
+<!-- 14. Aba Orçamentos (nada vai para o Bling) -->
+<section id="tela-orcamentos" class="tela interna">
+  <div class="barra-titulo">
+    <div><h2>Orçamentos</h2><p class="cinza" id="orc-resumo">Orçamentos não vão para o Bling: ficam aqui e podem ser enviados ao cliente por e-mail.</p></div>
+    <div class="botoes"><button id="orc-atualizar" class="secundario">Atualizar</button></div>
+  </div>
+  <div class="opcoes-inicio orc-novo">
+    <button id="orc-anexar" class="opcao">
+      <span class="icone">📎</span>
+      <strong>Importar PDF</strong>
+      <span class="cinza">PDF, foto ou planilha da cotação do cliente</span>
+    </button>
+    <button id="orc-criar" class="opcao">
+      <span class="icone">✏️</span>
+      <strong>Criar orçamento no app</strong>
+      <span class="cinza">Digitar ou colar os itens do Excel</span>
+    </button>
+  </div>
+  <div id="orc-soltar" class="soltar">ou arraste o arquivo para cá</div>
+  <div class="bloco filtros" style="margin-top:18px">
+    <div class="campo"><label>Situação</label>
+      <select id="orc-situacao">
+        <option value="abertos">Em aberto</option>
+        <option value="Rascunho">Rascunho</option>
+        <option value="Enviado">Enviado</option>
+        <option value="Aprovado">Aprovado</option>
+        <option value="Recusado">Recusado</option>
+        <option value="Convertido em pedido">Convertido em pedido</option>
+        <option value="todas">Todas</option>
+      </select></div>
+    <div class="campo"><label>De</label><input type="date" id="orc-de"></div>
+    <div class="campo"><label>Até</label><input type="date" id="orc-ate"></div>
+    <div class="campo"><label>Cliente</label><input type="text" id="orc-cliente" placeholder="Nome, CNPJ, nº ou cotação"></div>
+    <div class="campo"><label>Ordenar por</label>
+      <select id="orc-ordem">
+        <option value="recentes">Mais recentes</option>
+        <option value="antigos">Mais antigos</option>
+        <option value="maior">Maior valor</option>
+        <option value="menor">Menor valor</option>
+      </select></div>
+    <div class="campo"><label>&nbsp;</label><button id="orc-limpar" class="secundario">Limpar filtros</button></div>
+  </div>
+  <div id="orc-lista"></div>
 </section>
 
 <!-- 13. Solicitações (só o Bernard) -->
