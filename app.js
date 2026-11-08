@@ -3,7 +3,7 @@
   'use strict';
 
   const C = window.CONFIG;
-  const TELAS_INTERNAS = ['tela-inicio', 'tela-paginas', 'tela-lendo', 'tela-erro', 'tela-criar', 'tela-conferencia', 'tela-pedidos', 'tela-envio', 'tela-solic'];
+  const TELAS_INTERNAS = ['tela-inicio', 'tela-paginas', 'tela-lendo', 'tela-erro', 'tela-criar', 'tela-conferencia', 'tela-pedidos', 'tela-envio', 'tela-solic', 'tela-precos'];
   const E = {
     token: null, usuario: null, liberadas: [], empresa: null, dados: {},
     pedido: null, arquivo: null, docUrl: null, docTexto: null, paginas: null
@@ -52,6 +52,7 @@
     $('#nav-pedidos').classList.toggle('ativo', id === 'tela-pedidos' || id === 'tela-envio');
     $('#nav-novo').classList.toggle('ativo', ['tela-inicio', 'tela-paginas', 'tela-lendo', 'tela-criar'].indexOf(id) >= 0);
     $('#nav-solic').classList.toggle('ativo', id === 'tela-solic');
+    $('#nav-precos').classList.toggle('ativo', id === 'tela-precos');
     window.scrollTo(0, 0);
   }
 
@@ -1943,6 +1944,12 @@
     desenhar();
   }
 
+  /* ---------------- preços (precos.js) ---------------- */
+  function abrirPrecos() {
+    E.pedido = null;
+    window.Precos.abrir({ chamar: (acao, extra) => chamar(E.empresa, acao, extra), empresa: () => E.empresa, mostrar });
+  }
+
   /* ---------------- ligações ---------------- */
   function ligar() {
     $('#topo-logo').onclick = trocarEmpresa;
@@ -1951,6 +1958,7 @@
     $('#op-criar').onclick = abrirCriar;
     $('#nav-novo').onclick = () => { if (!E.pedido || confirm('Sair deste pedido sem salvar?')) irInicio(); };
     $('#nav-pedidos').onclick = () => { if (!E.pedido || confirm('Sair deste pedido sem salvar?')) abrirPedidos(); };
+    $('#nav-precos').onclick = () => { if (!E.pedido || confirm('Sair deste pedido sem salvar?')) abrirPrecos(); };
     $('#nav-solic').onclick = () => { if (!E.pedido || confirm('Sair deste pedido sem salvar?')) abrirSolicitacoes(); };
     $('#paginas-todas').onclick = () => {
       if (!E.paginas || E.paginas.tipo !== 'pdf') return;

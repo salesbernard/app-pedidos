@@ -199,3 +199,55 @@ input, select, textarea { font: inherit; color: inherit; }
 
 .grade tr.cortado td { background: #fafafa; }
 .grade tr.cortado .total { color: var(--cinza); }
+
+/* Aba Preços */
+.precos-caixa-busca { position: relative; display: flex; align-items: center; background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio); padding: 4px 6px 4px 14px; margin-bottom: 12px; }
+.precos-caixa-busca:focus-within { border-color: var(--cor); box-shadow: 0 0 0 3px var(--cor-clara); }
+#precos-busca { flex: 1; border: 0; outline: 0; padding: 10px 0; font-size: 16px; background: transparent; min-width: 0; }
+#precos-busca::-webkit-search-cancel-button { display: none; }
+.precos-vazio { padding: 24px 4px; }
+#precos-lista { display: flex; flex-direction: column; gap: 6px; }
+.precos-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio); padding: 12px 14px; color: var(--texto); }
+.precos-item:hover { border-color: var(--cor); }
+.precos-desc { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.precos-selos { display: flex; align-items: center; gap: 6px; flex-shrink: 0; font-size: 12px; }
+.selo { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.selo.venda { background: var(--cor-clara); color: var(--cor); }
+.selo.compra { background: #e6f3ec; color: var(--verde); }
+.selo.devol { background: var(--amarelo); color: #7a5d00; }
+.peq { font-size: 12px; }
+.forte { font-weight: 600; }
+body.sem-rolagem { overflow: hidden; }
+.precos-painel { position: fixed; inset: 0; z-index: 35; background: rgba(0,0,0,0); display: flex; align-items: center; justify-content: center; transition: background .2s; }
+.precos-painel.aberto { background: rgba(0,0,0,.35); }
+.precos-folha { background: var(--branco); border-radius: 14px; width: min(820px, 94vw); max-height: 86vh; overflow: auto; padding: 16px 20px 20px; opacity: 0; transform: translateY(12px); transition: opacity .2s, transform .2s; }
+.precos-painel.aberto .precos-folha { opacity: 1; transform: none; }
+.precos-alca { display: none; }
+.precos-folha-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; position: sticky; top: -16px; background: var(--branco); padding: 4px 0 10px; margin-bottom: 4px; border-bottom: 1px solid var(--linha); }
+.precos-folha-topo h3 { font-size: 16px; overflow-wrap: anywhere; }
+.precos-secao { margin-top: 14px; }
+.precos-secao h4 { margin: 0 0 6px; font-size: 14px; color: var(--cor); }
+.precos-tab { width: 100%; border-collapse: collapse; }
+.precos-tab th { text-align: left; font-size: 11px; font-weight: 600; color: var(--cinza); text-transform: uppercase; letter-spacing: .03em; padding: 6px 8px; border-bottom: 1px solid var(--linha); }
+.precos-tab td { padding: 8px; border-bottom: 1px solid var(--linha); vertical-align: top; }
+.precos-tab .num { text-align: right; white-space: nowrap; }
+.precos-devol { margin-top: 8px; }
+.precos-devol summary { cursor: pointer; color: #7a5d00; font-size: 13px; padding: 4px 0; }
+@media (max-width: 640px) {
+  .precos-item { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .precos-painel { align-items: flex-end; }
+  .precos-folha { width: 100%; max-height: 88vh; border-radius: 16px 16px 0 0; padding: 8px 14px 24px; transform: translateY(100%); opacity: 1; transition: transform .22s ease-out; }
+  .precos-alca { display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--linha); margin: 2px auto 8px; }
+  .precos-folha-topo { top: -8px; }
+  .precos-tab th, .precos-tab td { padding: 6px 4px; }
+}
+/* Topo no celular: com 3 ou 4 abas não cabia tudo; o logo continua trocando de empresa */
+@media (max-width: 640px) {
+  #topo { gap: 8px; padding: 0 10px; }
+  .topo-logo { width: 40px; height: 40px; flex-shrink: 0; }
+  .topo-empresa, .topo-direita #topo-usuario { display: none; }
+  .topo-nav { margin-left: 0; overflow-x: auto; scrollbar-width: none; }
+  .topo-nav::-webkit-scrollbar { display: none; }
+  .aba { padding: 18px 8px 15px; white-space: nowrap; }
+  .topo-direita { flex-shrink: 0; }
+}

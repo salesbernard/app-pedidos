@@ -15,6 +15,7 @@
   <script src="busca.js"></script>
   <script src="paginas.js"></script>
   <script src="vencimento.js"></script>
+  <script src="precos.js"></script>
 </head>
 <body>
 
@@ -58,6 +59,7 @@
   <nav class="topo-nav">
     <button id="nav-novo" class="aba">Novo pedido</button>
     <button id="nav-pedidos" class="aba">Pedidos</button>
+    <button id="nav-precos" class="aba">Preços</button>
     <button id="nav-solic" class="aba escondido">Solicitações <span id="nav-solic-n" class="contador escondido"></span></button>
   </nav>
   <div class="topo-direita">
@@ -234,6 +236,31 @@
   <div class="barra-titulo"><h2>Solicitações</h2></div>
   <div id="solic-lista"></div>
 </section>
+
+<!-- 14. Preços: últimas compras e vendas de cada item (só leitura) -->
+<section id="tela-precos" class="tela interna">
+  <div class="barra-titulo">
+    <div><h2>Preços</h2><p class="cinza" id="precos-info"></p></div>
+    <div class="botoes"><button id="precos-atualizar" class="secundario">Atualizar</button></div>
+  </div>
+  <div class="precos-caixa-busca">
+    <input type="search" id="precos-busca" placeholder="Buscar pela descrição do item" autocomplete="off" enterkeyhint="search">
+    <button id="precos-limpar" class="link" title="Limpar">Limpar</button>
+  </div>
+  <div id="precos-lista"></div>
+</section>
+
+<!-- Painel do item (no celular sobe da base da tela) -->
+<div id="precos-painel" class="precos-painel escondido">
+  <div class="precos-folha" role="dialog" aria-labelledby="precos-painel-titulo">
+    <div class="precos-alca"></div>
+    <div class="precos-folha-topo">
+      <div><h3 id="precos-painel-titulo"></h3><div id="precos-painel-sub" class="cinza peq"></div></div>
+      <button class="link" id="precos-painel-fechar">Fechar</button>
+    </div>
+    <div id="precos-painel-corpo"></div>
+  </div>
+</div>
 
 <!-- Janela de escolha de produto -->
 <div id="janela" class="janela escondido">
