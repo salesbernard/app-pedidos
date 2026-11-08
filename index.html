@@ -59,7 +59,7 @@
   <nav class="topo-nav">
     <button id="nav-novo" class="aba">Novo pedido</button>
     <button id="nav-pedidos" class="aba">Pedidos</button>
-    <button id="nav-precos" class="aba escondido">Preços</button>
+    <button id="nav-precos" class="aba">Preços</button>
     <button id="nav-solic" class="aba escondido">Solicitações <span id="nav-solic-n" class="contador escondido"></span></button>
   </nav>
   <div class="topo-direita">
@@ -237,30 +237,31 @@
   <div id="solic-lista"></div>
 </section>
 
-<!-- 14. Preços: últimas compras e vendas de cada item (só leitura) -->
+<!-- 14. Preços: últimos preços de venda e de compra de cada item (só leitura) -->
 <section id="tela-precos" class="tela interna">
   <div class="barra-titulo">
     <div><h2>Preços</h2><p class="cinza" id="precos-info"></p></div>
     <div class="botoes"><button id="precos-atualizar" class="secundario">Atualizar</button></div>
   </div>
-  <div class="precos-caixa-busca">
-    <input type="search" id="precos-busca" placeholder="Buscar pela descrição do item" autocomplete="off" enterkeyhint="search">
-    <button id="precos-limpar" class="link" title="Limpar">Limpar</button>
-  </div>
-  <div id="precos-lista"></div>
-</section>
-
-<!-- Painel do item (no celular sobe da base da tela) -->
-<div id="precos-painel" class="precos-painel escondido">
-  <div class="precos-folha" role="dialog" aria-labelledby="precos-painel-titulo">
-    <div class="precos-alca"></div>
-    <div class="precos-folha-topo">
-      <div><h3 id="precos-painel-titulo"></h3><div id="precos-painel-sub" class="cinza peq"></div></div>
-      <button class="link" id="precos-painel-fechar">Fechar</button>
+  <div class="precos-colunas">
+    <div class="precos-coluna precos-vendas">
+      <div class="precos-coluna-topo"><h3>Vendas</h3><span class="cinza peq" id="precos-cont-vendas"></span></div>
+      <div class="precos-caixa-busca">
+        <input type="search" id="precos-busca-vendas" placeholder="Buscar item vendido" autocomplete="off" enterkeyhint="search">
+        <button id="precos-limpar-vendas" class="link" title="Limpar">Limpar</button>
+      </div>
+      <div id="precos-lista-vendas" class="precos-lista"></div>
     </div>
-    <div id="precos-painel-corpo"></div>
+    <div class="precos-coluna precos-compras">
+      <div class="precos-coluna-topo"><h3>Compras</h3><span class="cinza peq" id="precos-cont-compras"></span></div>
+      <div class="precos-caixa-busca">
+        <input type="search" id="precos-busca-compras" placeholder="Buscar item comprado" autocomplete="off" enterkeyhint="search">
+        <button id="precos-limpar-compras" class="link" title="Limpar">Limpar</button>
+      </div>
+      <div id="precos-lista-compras" class="precos-lista"></div>
+    </div>
   </div>
-</div>
+</section>
 
 <!-- Janela de escolha de produto -->
 <div id="janela" class="janela escondido">

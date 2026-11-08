@@ -1,23 +1,21 @@
-/* ABA PREÇOS — últimas compras e vendas de cada item, a partir das notas fiscais da empresa.
+/* ABA PREÇOS — últimos preços de venda e de compra de cada item, a partir das notas fiscais da empresa.
  * Só leitura. Os dados vêm do servidor (ação "precos"), que lê o ITENS_PRECOS.csv gravado
  * pelo coletor ao lado do índice de notas.
  *
- * Busca: cada palavra digitada precisa aparecer em qualquer posição da descrição, sem
- * diferenciar acento nem maiúscula. Compra e venda não se ligam por código (o de venda é o
- * interno do Bling, o de compra é o do fornecedor): o painel mostra as do item escolhido e,
- * do lado que ele não tiver, as encontradas pela mesma palavra.
+ * Duas buscas independentes na mesma página: Vendas e Compras. Compra e venda não se ligam por
+ * código (o de venda é o interno do Bling, o de compra é o do fornecedor), por isso cada lado
+ * busca nas suas próprias descrições. Cada palavra digitada precisa aparecer em qualquer posição
+ * da descrição, sem diferenciar acento nem maiúscula. Ao expandir um item aparecem os últimos 5
+ * preços com data e cliente/fornecedor. Devoluções e notas canceladas não entram.
  *
  * Funções puras em window.Precos (e module.exports no Node, para testes).
  */
 (function (raiz) {
   'use strict';
 
-  const TIPOS = {
-    C: 'Compra', V: 'Venda', DV: 'Devolução de venda', DC: 'Devolução de compra'
-  };
-  const LADO = { C: 'compras', DC: 'compras', V: 'vendas', DV: 'vendas' };
-  const MAX_RESULTADOS = 60;
-  const MAX_LINHAS = 10;
+  const LADOS = { V: 'vendas', C: 'compras' };   // DV/DC (devoluções) ficam de fora
+  const MAX_RESULTADOS = 40;
+  const ULTIMOS = 5;
 
   function normalizar(s) {
     return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -25,88 +23,74 @@
   }
   const palavras = termo => normalizar(termo).split(' ').filter(Boolean);
   const contemTodas = (txt, ps) => ps.every(p => txt.indexOf(p) >= 0);
+  const maisRecente = (a, b) => (b.data > a.data) - (b.data < a.data) || (Number(b.nf) || 0) - (Number(a.nf) || 0);
 
-  // dados do servidor → estrutura de busca
+  // dados do servidor → { vendas: [itens], compras: [itens] }; item = { texto, norm, linhas (mais recente primeiro) }
   function preparar(j) {
-    const descs = (j.descricoes || []).map((d, i) => ({
-      i, texto: d, norm: normalizar(d), compras: 0, vendas: 0, devol: 0, ultima: ''
-    }));
-    const linhas = (j.linhas || []).map(l => ({
-      tipo: l[0], nf: l[1], data: l[2], parte: (j.partes[l[3]] || ['', ''])[0], cnpj: (j.partes[l[3]] || ['', ''])[1],
-      desc: l[4], codigo: l[5], unid: l[6], qtd: l[7], unit: l[8]
-    }));
-    linhas.forEach(l => {
-      const d = descs[l.desc];
-      if (!d) return;
-      if (l.tipo === 'C') d.compras++;
-      else if (l.tipo === 'V') d.vendas++;
-      else d.devol++;
-      if (l.data > d.ultima) d.ultima = l.data;
+    const partes = j.partes || [], descs = j.descricoes || [];
+    const lados = { vendas: new Map(), compras: new Map() };
+    (j.linhas || []).forEach(l => {
+      const lado = LADOS[l[0]];
+      if (!lado || descs[l[4]] == null) return;
+      const m = lados[lado];
+      if (!m.has(l[4])) m.set(l[4], { texto: descs[l[4]], norm: normalizar(descs[l[4]]), linhas: [] });
+      const p = partes[l[3]] || ['', ''];
+      m.get(l[4]).linhas.push({ nf: l[1], data: l[2], parte: p[0], cnpj: p[1], codigo: l[5], unid: l[6], qtd: l[7], unit: l[8] });
     });
-    // mais recente primeiro (data, depois nº da nota)
-    linhas.sort((a, b) => (b.data > a.data) - (b.data < a.data) || (Number(b.nf) || 0) - (Number(a.nf) || 0));
-    return { descs, linhas, atualizado: j.atualizado || '' };
+    const lista = m => Array.from(m.values()).map(it => {
+      it.linhas.sort(maisRecente);
+      it.ultima = it.linhas.length ? it.linhas[0].data : '';
+      return it;
+    });
+    return { vendas: lista(lados.vendas), compras: lista(lados.compras), atualizado: j.atualizado || '' };
   }
 
-  // descrições que contêm todas as palavras; as mais recentes primeiro
-  function buscar(base, termo, limite) {
+  // itens do lado que contêm todas as palavras; os vendidos/comprados mais recentemente primeiro
+  function buscar(itens, termo, limite) {
     const ps = palavras(termo);
     if (!ps.length) return [];
-    const achados = base.descs.filter(d => contemTodas(d.norm, ps));
-    achados.sort((a, b) => (b.ultima > a.ultima) - (b.ultima < a.ultima) || a.texto.localeCompare(b.texto));
-    return achados.slice(0, limite || MAX_RESULTADOS);
+    return itens.filter(it => contemTodas(it.norm, ps))
+      .sort((a, b) => (b.ultima > a.ultima) - (b.ultima < a.ultima) || a.texto.localeCompare(b.texto))
+      .slice(0, limite || MAX_RESULTADOS);
   }
 
-  // histórico do item escolhido; o lado sem nenhuma linha usa as encontradas pela palavra
-  function historico(base, iDesc, termo, max) {
-    max = max || MAX_LINHAS;
-    const ps = palavras(termo);
-    const doItem = base.linhas.filter(l => l.desc === iDesc);
-    const pelaPalavra = lado => base.linhas.filter(l => LADO[l.tipo] === lado && l.tipo.length === 1 &&
-      contemTodas(base.descs[l.desc].norm, ps));
-    const lado = nome => {
-      const principais = doItem.filter(l => LADO[l.tipo] === nome && l.tipo.length === 1);
-      const devolucoes = doItem.filter(l => LADO[l.tipo] === nome && l.tipo.length === 2);
-      if (principais.length || devolucoes.length || !ps.length)
-        return { linhas: principais.slice(0, max), total: principais.length, devolucoes: devolucoes.slice(0, max), pelaPalavra: false };
-      const outras = pelaPalavra(nome);
-      return { linhas: outras.slice(0, max), total: outras.length, devolucoes: [], pelaPalavra: true };
-    };
-    return { compras: lado('compras'), vendas: lado('vendas') };
-  }
-
-  const api = { TIPOS, normalizar, preparar, buscar, historico };
+  const api = { normalizar, preparar, buscar, ULTIMOS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   raiz.Precos = api;
 
   /* ---------------- tela (só no navegador) ---------------- */
   if (typeof document === 'undefined') return;
 
-  const T = { base: {}, carregando: {}, termo: '', escolhido: null, app: null };
+  const T = { base: {}, carregando: {}, termo: { vendas: '', compras: '' }, app: null };
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const moeda = n => (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  // 2 casas (ex.: R$ 13,20); só abaixo de R$ 1 mostra até 4, para não sumir o centavo fracionado
+  const moeda = n => { n = Number(n) || 0; return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: n < 1 ? 4 : 2 }); };
   const qtd = n => (Number(n) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 3 });
-  const dataBR = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? `${m[3]}/${m[2]}/${m[1].slice(2)}` : (s || '—'); };
-  const dataHoraBR = s => { const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/.exec(s || ''); return m ? `${m[3]}/${m[2]}/${m[1]}${m[4] ? ' ' + m[4] + ':' + m[5] : ''}` : ''; };
+  const dataBR = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? `${m[3]}/${m[2]}/${m[1]}` : (s || '—'); };
+  const dataHoraBR = s => { const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/.exec(s || ''); return m ? `${m[3]}/${m[2]}/${m[1]}${m[4] ? ' às ' + m[4] + ':' + m[5] : ''}` : ''; };
+  const ROTULO = { vendas: { parte: 'Cliente', vazio: 'vendido', acao: 'venda', acoes: 'vendas' },
+                   compras: { parte: 'Fornecedor', vazio: 'comprado', acao: 'compra', acoes: 'compras' } };
 
   // chamado pelo app.js: app = { chamar(acao), empresa(), mostrar(id) }
   raiz.Precos.abrir = function (app) {
     T.app = app;
     app.mostrar('tela-precos');
-    const emp = app.empresa();
-    $('#precos-busca').value = T.termo;
-    fecharPainel();
-    carregar(emp).then(() => { desenharLista(); setTimeout(() => $('#precos-busca').focus(), 50); });
+    ['vendas', 'compras'].forEach(l => { $('#precos-busca-' + l).value = T.termo[l]; });
+    carregar(app.empresa()).then(() => {
+      desenhar('vendas'); desenhar('compras');
+      if (matchMedia('(min-width: 900px)').matches) setTimeout(() => $('#precos-busca-vendas').focus(), 50);
+    });
   };
 
   async function carregar(emp, forcar) {
-    if (T.base[emp.id] && !forcar) return T.base[emp.id];
+    if (T.base[emp.id] && !forcar) { mostrarInfo(); return T.base[emp.id]; }
     if (!T.carregando[emp.id]) {
       $('#precos-info').textContent = 'Carregando as notas da ' + emp.curto + '...';
       T.carregando[emp.id] = T.app.chamar('precos').then(j => {
         T.base[emp.id] = preparar(j);
+        mostrarInfo();
         return T.base[emp.id];
       }).catch(e => {
         $('#precos-info').innerHTML = '<span class="erro">' + esc(e.message) + '</span>';
@@ -118,93 +102,75 @@
 
   function baseAtual() { return T.app && T.base[T.app.empresa().id]; }
 
-  function desenharLista() {
+  function mostrarInfo() {
+    const b = baseAtual();
+    if (!b) return;
+    $('#precos-info').textContent = 'Últimos preços das notas fiscais' + (b.atualizado ? ` · atualizado em ${dataHoraBR(b.atualizado)}` : '');
+  }
+
+  function desenhar(lado) {
     const base = baseAtual();
-    const lista = $('#precos-lista');
-    if (!base) { lista.innerHTML = ''; return; }
-    const info = `${base.descs.length.toLocaleString('pt-BR')} itens das notas` +
-      (base.atualizado ? ` · atualizado em ${dataHoraBR(base.atualizado)}` : '');
-    const termo = T.termo.trim();
+    const lista = $('#precos-lista-' + lado), cont = $('#precos-cont-' + lado);
+    const R = ROTULO[lado];
+    if (!base) { lista.innerHTML = ''; cont.textContent = ''; return; }
+    const termo = T.termo[lado].trim();
     if (!termo) {
-      $('#precos-info').textContent = info;
-      lista.innerHTML = '<p class="cinza precos-vazio">Digite uma palavra da descrição, por exemplo <b>joelho</b> ou <b>chamex</b>.</p>';
+      cont.textContent = `${base[lado].length.toLocaleString('pt-BR')} itens`;
+      lista.innerHTML = `<p class="cinza precos-vazio">Digite uma palavra da descrição para ver os preços de ${R.acao}.</p>`;
       return;
     }
-    const achados = buscar(base, termo);
-    $('#precos-info').textContent = achados.length
-      ? (achados.length >= MAX_RESULTADOS ? `Mostrando os ${MAX_RESULTADOS} mais recentes. Digite mais uma palavra para filtrar.` : `${achados.length} ${achados.length === 1 ? 'item encontrado' : 'itens encontrados'}`)
-      : info;
-    if (!achados.length) { lista.innerHTML = '<p class="cinza precos-vazio">Nenhum item com “' + esc(termo) + '” nas notas.</p>'; return; }
-    lista.innerHTML = achados.map(d => `
-      <button class="precos-item" data-i="${d.i}">
-        <span class="precos-desc">${esc(d.texto)}</span>
-        <span class="precos-selos">
-          ${d.vendas ? `<span class="selo venda">${d.vendas} venda${d.vendas > 1 ? 's' : ''}</span>` : ''}
-          ${d.compras ? `<span class="selo compra">${d.compras} compra${d.compras > 1 ? 's' : ''}</span>` : ''}
-          ${d.devol ? `<span class="selo devol">${d.devol} devol.</span>` : ''}
-          <span class="cinza">${dataBR(d.ultima)}</span>
-        </span>
-      </button>`).join('');
-    lista.querySelectorAll('.precos-item').forEach(b => { b.onclick = () => abrirPainel(Number(b.dataset.i)); });
+    const achados = buscar(base[lado], termo);
+    cont.textContent = achados.length >= MAX_RESULTADOS ? `${MAX_RESULTADOS}+ itens` : `${achados.length} ${achados.length === 1 ? 'item' : 'itens'}`;
+    if (!achados.length) { lista.innerHTML = `<p class="cinza precos-vazio">Nenhum item ${R.vazio} com “${esc(termo)}”.</p>`; return; }
+    lista.innerHTML = achados.map((it, k) => {
+      const u = it.linhas[0];
+      return `<div class="precos-item" data-k="${k}">
+        <button class="precos-cab" aria-expanded="false">
+          <span class="precos-desc">${esc(it.texto)}</span>
+          <span class="precos-resumo"><strong>${moeda(u.unit)}</strong><span class="cinza">${dataBR(u.data)}</span></span>
+          <span class="precos-seta" aria-hidden="true"></span>
+        </button>
+        <div class="precos-detalhe escondido"></div>
+      </div>`;
+    }).join('') + (achados.length >= MAX_RESULTADOS ? '<p class="cinza peq precos-mais">Digite mais uma palavra para filtrar.</p>' : '');
+    lista.querySelectorAll('.precos-item').forEach(el => {
+      el.querySelector('.precos-cab').onclick = () => alternar(el, achados[Number(el.dataset.k)], lado);
+    });
   }
 
-  function tabela(linhas, mostrarDesc, rotuloParte) {
-    if (!linhas.length) return '';
-    return `<table class="precos-tab"><thead><tr><th>Data</th><th class="num">Qtd</th><th class="num">Valor unit.</th><th>${rotuloParte}</th></tr></thead><tbody>` +
-      linhas.map(l => `<tr>
-        <td>${dataBR(l.data)}<div class="cinza peq">NF ${esc(l.nf)}</div></td>
-        <td class="num">${qtd(l.qtd)}<div class="cinza peq">${esc(l.unid)}</div></td>
-        <td class="num forte">${moeda(l.unit)}</td>
-        <td>${esc(l.parte)}${mostrarDesc ? `<div class="cinza peq">${esc(baseAtual().descs[l.desc].texto)}</div>` : ''}</td>
-      </tr>`).join('') + '</tbody></table>';
+  function alternar(el, it, lado) {
+    const det = el.querySelector('.precos-detalhe'), cab = el.querySelector('.precos-cab');
+    const abrir = det.classList.contains('escondido');
+    if (abrir && !det.innerHTML) det.innerHTML = detalhe(it, lado);
+    det.classList.toggle('escondido', !abrir);
+    el.classList.toggle('aberto', abrir);
+    cab.setAttribute('aria-expanded', String(abrir));
   }
 
-  function secao(titulo, lado, rotuloParte, tipoDevol) {
-    let h = `<section class="precos-secao"><h4>${titulo}${lado.total > lado.linhas.length ? ` <span class="cinza">(últimas ${lado.linhas.length} de ${lado.total})</span>` : ''}</h4>`;
-    if (lado.pelaPalavra && lado.linhas.length)
-      h += `<p class="cinza peq">Este item não tem ${titulo.toLowerCase()} com a mesma descrição. Abaixo, as ${titulo.toLowerCase()} encontradas por “${esc(T.termo.trim())}”.</p>`;
-    h += lado.linhas.length ? tabela(lado.linhas, lado.pelaPalavra, rotuloParte) : `<p class="cinza">Nenhuma ${titulo.toLowerCase().replace(/s$/, '')} encontrada.</p>`;
-    const nd = lado.devolucoes.length;
-    if (nd) h += `<details class="precos-devol"><summary>${nd} ${nd === 1 ? 'devolução' : 'devoluções'} ${tipoDevol} (fora da lista acima)</summary>${tabela(lado.devolucoes, false, rotuloParte)}</details>`;
-    return h + '</section>';
-  }
-
-  function abrirPainel(iDesc) {
-    const base = baseAtual();
-    if (!base) return;
-    T.escolhido = iDesc;
-    const h = historico(base, iDesc, T.termo);
-    $('#precos-painel-titulo').textContent = base.descs[iDesc].texto;
-    const codigo = (base.linhas.find(l => l.desc === iDesc) || {}).codigo;
-    $('#precos-painel-sub').textContent = codigo ? 'Código ' + codigo : '';
-    $('#precos-painel-corpo').innerHTML =
-      secao('Vendas', h.vendas, 'Cliente', 'de venda') +
-      secao('Compras', h.compras, 'Fornecedor', 'de compra');
-    $('#precos-painel').classList.remove('escondido');
-    document.body.classList.add('sem-rolagem');
-    requestAnimationFrame(() => $('#precos-painel').classList.add('aberto'));
-  }
-
-  function fecharPainel() {
-    const p = $('#precos-painel');
-    if (!p) return;
-    p.classList.remove('aberto');
-    document.body.classList.remove('sem-rolagem');
-    T.escolhido = null;
-    setTimeout(() => { if (!p.classList.contains('aberto')) p.classList.add('escondido'); }, 220);
+  function detalhe(it, lado) {
+    const R = ROTULO[lado], ult = it.linhas.slice(0, ULTIMOS);
+    const codigo = it.linhas[0].codigo;
+    return `<table class="precos-tab"><thead><tr><th>Data</th><th class="num">Valor unit.</th><th>${R.parte}</th></tr></thead><tbody>` +
+      ult.map(l => `<tr>
+        <td>${dataBR(l.data)}</td>
+        <td class="num forte">${moeda(l.unit)}<div class="cinza peq">${qtd(l.qtd)} ${esc(l.unid)}</div></td>
+        <td>${esc(l.parte)}</td>
+      </tr>`).join('') + '</tbody></table>' +
+      `<p class="cinza peq precos-rodape">${it.linhas.length > ULTIMOS ? `Últimas ${ULTIMOS} de ${it.linhas.length} ${R.acoes}` : `${it.linhas.length} ${it.linhas.length === 1 ? R.acao : R.acoes}`}${codigo ? ` · código ${esc(codigo)}` : ''}</p>`;
   }
 
   function ligar() {
-    let t;
-    $('#precos-busca').addEventListener('input', ev => {
-      T.termo = ev.target.value;
-      clearTimeout(t); t = setTimeout(desenharLista, 120);
+    ['vendas', 'compras'].forEach(lado => {
+      let t;
+      $('#precos-busca-' + lado).addEventListener('input', ev => {
+        T.termo[lado] = ev.target.value;
+        clearTimeout(t); t = setTimeout(() => desenhar(lado), 120);
+      });
+      $('#precos-limpar-' + lado).onclick = () => {
+        T.termo[lado] = ''; $('#precos-busca-' + lado).value = ''; desenhar(lado); $('#precos-busca-' + lado).focus();
+      };
     });
-    $('#precos-limpar').onclick = () => { T.termo = ''; $('#precos-busca').value = ''; desenharLista(); $('#precos-busca').focus(); };
-    $('#precos-atualizar').onclick = () => { const emp = T.app.empresa(); carregar(emp, true).then(desenharLista); };
-    $('#precos-painel-fechar').onclick = fecharPainel;
-    $('#precos-painel').onclick = ev => { if (ev.target.id === 'precos-painel') fecharPainel(); };
-    document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && T.escolhido != null) fecharPainel(); });
+    $('#precos-atualizar').onclick = () => carregar(T.app.empresa(), true).then(() => { desenhar('vendas'); desenhar('compras'); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ligar); else ligar();
 })(typeof window !== 'undefined' ? window : globalThis);

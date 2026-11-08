@@ -200,45 +200,44 @@ input, select, textarea { font: inherit; color: inherit; }
 .grade tr.cortado td { background: #fafafa; }
 .grade tr.cortado .total { color: var(--cinza); }
 
-/* Aba Preços */
-.precos-caixa-busca { position: relative; display: flex; align-items: center; background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio); padding: 4px 6px 4px 14px; margin-bottom: 12px; }
-.precos-caixa-busca:focus-within { border-color: var(--cor); box-shadow: 0 0 0 3px var(--cor-clara); }
-#precos-busca { flex: 1; border: 0; outline: 0; padding: 10px 0; font-size: 16px; background: transparent; min-width: 0; }
-#precos-busca::-webkit-search-cancel-button { display: none; }
-.precos-vazio { padding: 24px 4px; }
-#precos-lista { display: flex; flex-direction: column; gap: 6px; }
-.precos-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio); padding: 12px 14px; color: var(--texto); }
-.precos-item:hover { border-color: var(--cor); }
-.precos-desc { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-.precos-selos { display: flex; align-items: center; gap: 6px; flex-shrink: 0; font-size: 12px; }
-.selo { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-.selo.venda { background: var(--cor-clara); color: var(--cor); }
-.selo.compra { background: #e6f3ec; color: var(--verde); }
-.selo.devol { background: var(--amarelo); color: #7a5d00; }
+/* Aba Preços: duas colunas (Vendas | Compras), cada uma com a sua busca */
+.precos-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+.precos-coluna { background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio); padding: 14px; min-width: 0; }
+.precos-coluna-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.precos-coluna-topo h3 { margin: 0; font-size: 16px; }
+.precos-vendas .precos-coluna-topo h3 { color: var(--cor); }
+.precos-compras .precos-coluna-topo h3 { color: var(--verde); }
+.precos-caixa-busca { display: flex; align-items: center; background: var(--fundo); border: 1px solid var(--linha); border-radius: 8px; padding: 2px 8px 2px 12px; margin-bottom: 10px; }
+.precos-caixa-busca:focus-within { border-color: var(--cor); background: var(--branco); box-shadow: 0 0 0 3px var(--cor-clara); }
+.precos-caixa-busca input { flex: 1; border: 0; outline: 0; padding: 9px 0; font-size: 16px; background: transparent; min-width: 0; }
+.precos-caixa-busca input::-webkit-search-cancel-button { display: none; }
+.precos-vazio { padding: 14px 2px; margin: 0; }
+.precos-mais { margin: 8px 2px 0; }
+.precos-lista { display: flex; flex-direction: column; }
+.precos-item { border-top: 1px solid var(--linha); }
+.precos-item:first-child { border-top: 0; }
+.precos-cab { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: 0; padding: 11px 2px; color: var(--texto); }
+.precos-cab:hover .precos-desc { color: var(--cor); }
+.precos-desc { flex: 1; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.precos-resumo { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; font-size: 13px; line-height: 1.3; }
+.precos-resumo .cinza { font-size: 11px; }
+.precos-seta { width: 8px; height: 8px; border-right: 2px solid var(--cinza); border-bottom: 2px solid var(--cinza); transform: rotate(45deg); margin: 0 4px 4px; flex-shrink: 0; transition: transform .15s; }
+.precos-item.aberto .precos-seta { transform: rotate(-135deg); margin-bottom: -4px; }
+.precos-item.aberto { background: var(--fundo); border-radius: 8px; padding: 0 8px; margin: 2px -8px; }
+.precos-detalhe { padding: 0 0 10px; }
+.precos-rodape { margin: 6px 0 0; }
 .peq { font-size: 12px; }
 .forte { font-weight: 600; }
-body.sem-rolagem { overflow: hidden; }
-.precos-painel { position: fixed; inset: 0; z-index: 35; background: rgba(0,0,0,0); display: flex; align-items: center; justify-content: center; transition: background .2s; }
-.precos-painel.aberto { background: rgba(0,0,0,.35); }
-.precos-folha { background: var(--branco); border-radius: 14px; width: min(820px, 94vw); max-height: 86vh; overflow: auto; padding: 16px 20px 20px; opacity: 0; transform: translateY(12px); transition: opacity .2s, transform .2s; }
-.precos-painel.aberto .precos-folha { opacity: 1; transform: none; }
-.precos-alca { display: none; }
-.precos-folha-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; position: sticky; top: -16px; background: var(--branco); padding: 4px 0 10px; margin-bottom: 4px; border-bottom: 1px solid var(--linha); }
-.precos-folha-topo h3 { font-size: 16px; overflow-wrap: anywhere; }
-.precos-secao { margin-top: 14px; }
-.precos-secao h4 { margin: 0 0 6px; font-size: 14px; color: var(--cor); }
-.precos-tab { width: 100%; border-collapse: collapse; }
+.precos-tab { width: 100%; border-collapse: collapse; background: var(--branco); border-radius: 6px; }
 .precos-tab th { text-align: left; font-size: 11px; font-weight: 600; color: var(--cinza); text-transform: uppercase; letter-spacing: .03em; padding: 6px 8px; border-bottom: 1px solid var(--linha); }
-.precos-tab td { padding: 8px; border-bottom: 1px solid var(--linha); vertical-align: top; }
+.precos-tab td { padding: 7px 8px; border-bottom: 1px solid var(--linha); vertical-align: top; }
+.precos-tab tr:last-child td { border-bottom: 0; }
 .precos-tab .num { text-align: right; white-space: nowrap; }
-.precos-devol { margin-top: 8px; }
-.precos-devol summary { cursor: pointer; color: #7a5d00; font-size: 13px; padding: 4px 0; }
+@media (max-width: 900px) {
+  .precos-colunas { grid-template-columns: 1fr; gap: 14px; }
+}
 @media (max-width: 640px) {
-  .precos-item { flex-direction: column; align-items: flex-start; gap: 6px; }
-  .precos-painel { align-items: flex-end; }
-  .precos-folha { width: 100%; max-height: 88vh; border-radius: 16px 16px 0 0; padding: 8px 14px 24px; transform: translateY(100%); opacity: 1; transition: transform .22s ease-out; }
-  .precos-alca { display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--linha); margin: 2px auto 8px; }
-  .precos-folha-topo { top: -8px; }
+  .precos-coluna { padding: 12px 10px; }
   .precos-tab th, .precos-tab td { padding: 6px 4px; }
 }
 /* Topo no celular: com 3 ou 4 abas não cabia tudo; o logo continua trocando de empresa */

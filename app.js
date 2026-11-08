@@ -119,8 +119,6 @@
     E.usuario = E.liberadas[0].info.usuario;
     $('#login-erro').textContent = '';
     if (E.usuario.aprovador) { $('#nav-solic').classList.remove('escondido'); contarSolicitacoes(); }
-    // Aba Preços: só gerentes (Bernard e Paulo) até PRECOS_PARA_TODOS = true no config.js
-    $('#nav-precos').classList.toggle('escondido', !(C.PRECOS_PARA_TODOS || E.usuario.papel === 'gerente'));
     if (E.liberadas.length === 1) entrarNaEmpresa(E.liberadas[0]);
     else mostrarEscolhaEmpresa();
   }

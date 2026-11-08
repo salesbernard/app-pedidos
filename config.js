@@ -15,7 +15,5 @@ window.CONFIG = {
   LOGO_GRUPO: 'img/montevi_group.png',
   // Modelo da mensagem de logística no WhatsApp (1, 2 ou 3)
   MODELO_LOGISTICA: 1,
-  SEGUNDOS_ABERTURA: 3,
-  // Aba Preços: false = só gerentes (fase de teste com Bernard e Paulo); true = todos os vendedores
-  PRECOS_PARA_TODOS: false
+  SEGUNDOS_ABERTURA: 3
 };
