@@ -41,6 +41,17 @@
     const mix = c => Math.round(c + (255 - c) * 0.88);
     return `rgb(${mix(n >> 16)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
   }
+  // Paleta e marca d'água da empresa (cores tiradas da logo 3D; config.js: cor, corEscura, destaque, fundo)
+  function aplicarTema(emp) {
+    const r = document.documentElement.style;
+    r.setProperty('--cor', emp.cor);
+    r.setProperty('--cor-clara', corClara(emp.cor));
+    r.setProperty('--cor-escura', emp.corEscura || emp.cor);
+    r.setProperty('--destaque', emp.destaque || emp.cor);
+    if (emp.fundo) r.setProperty('--fundo', emp.fundo);
+    r.setProperty('--marca', 'url("' + emp.logo + '")');
+    document.documentElement.setAttribute('data-empresa', emp.id);
+  }
   function avisar(msg, ms) {
     const el = $('#aviso-rodape');
     el.textContent = msg; el.classList.remove('escondido');
@@ -50,6 +61,7 @@
   function mostrar(id) {
     document.querySelectorAll('.tela').forEach(t => t.classList.toggle('ativa', t.id === id));
     $('#topo').classList.toggle('escondido', TELAS_INTERNAS.indexOf(id) < 0);
+    document.body.classList.toggle('com-marca', TELAS_INTERNAS.indexOf(id) >= 0 && !!E.empresa);
     const noOrc = id === 'tela-orcamentos' ||
       (E.contexto === 'orcamento' && ['tela-paginas', 'tela-lendo', 'tela-criar', 'tela-conferencia', 'tela-erro'].indexOf(id) >= 0);
     $('#nav-orc').classList.toggle('ativo', noOrc);
@@ -141,8 +153,7 @@
 
   async function entrarNaEmpresa(emp) {
     E.empresa = emp;
-    document.documentElement.style.setProperty('--cor', emp.cor);
-    document.documentElement.style.setProperty('--cor-clara', corClara(emp.cor));
+    aplicarTema(emp);
     $('#logo-empresa-abertura').src = emp.logo;
     $('#carregando-dados').classList.add('escondido');
     mostrar('tela-abertura-empresa');
