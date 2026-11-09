@@ -10,7 +10,7 @@ window.CONFIG = {
       logo: 'img/montevideu_3d.png', cor: '#0B63B8', corEscura: '#07375D', destaque: '#FECF04', fundo: '#EEF4FA' },
     { id: 'dom', nome: 'DOM Multicomércio', curto: 'DOM', cnpj: '61265684000148',
       url: 'https://script.google.com/macros/s/AKfycbxxMdt93kx_PNh28ca3LMqEtydm_cjeVUJIyjt0NY0yIUc9xzVxZj1OkrIBYIYSSblu/exec',
-      logo: 'img/dom_3d.png', cor: '#D71F16', corEscura: '#6F1110', destaque: '#6F1110', fundo: '#FBF1F0', emailPeloServidor: true, emailRemetente: 'ffiscaldom@gmail.com' }
+      logo: 'img/dom_3d.png', cor: '#D71F16', corEscura: '#6F1110', destaque: '#6F1110', fundo: '#FEF8F7', emailPeloServidor: true, emailRemetente: 'ffiscaldom@gmail.com' }
   ],
   LOGO_GRUPO: 'img/montevi_group.png',
   // Botões de Logística (mensagem para o grupo do WhatsApp): false = desligado (decisão do Bernard em 09/11/2026); true = volta a aparecer

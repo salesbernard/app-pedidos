@@ -262,7 +262,7 @@ input, select, textarea { font: inherit; color: inherit; }
 body.com-marca::before {
   content: ""; position: fixed; inset: 60px 0 0 0; z-index: 5; pointer-events: none;
   background: var(--marca) center / min(78vw, 640px) auto no-repeat;
-  opacity: .06; mix-blend-mode: multiply;
+  opacity: .12; mix-blend-mode: multiply;
 }
 html[data-empresa="dom"] body.com-marca::before { background-size: min(86vw, 760px) auto; }
 .aba.ativo { border-bottom-color: var(--cor); }
