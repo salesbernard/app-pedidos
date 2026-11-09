@@ -114,6 +114,10 @@ input, select, textarea { font: inherit; color: inherit; }
 .etiqueta { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 10px; background: var(--cor-clara); color: var(--cor); margin-left: 6px; vertical-align: middle; }
 .etiqueta.amarela { background: var(--amarelo); color: #8a6d00; }
 .etiqueta.vermelha { background: #fde8e8; color: var(--vermelho); }
+.etiqueta.verde { background: #e3f4e8; color: #1e7b3a; }
+.etiqueta.cinza { background: #eef0f2; color: #5b6570; }
+.opcoes-inicio.orc-novo { margin-top: 18px; }
+.opcoes-inicio.orc-novo .opcao { padding: 22px 20px; }
 .emails label { display: inline-flex; gap: 5px; align-items: center; margin: 4px 14px 4px 0; }
 
 /* Grades */
