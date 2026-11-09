@@ -15,6 +15,7 @@
   <script src="busca.js"></script>
   <script src="paginas.js"></script>
   <script src="vencimento.js"></script>
+  <script src="precos.js"></script>
 </head>
 <body>
 
@@ -59,6 +60,7 @@
     <button id="nav-novo" class="aba">Novo pedido</button>
     <button id="nav-pedidos" class="aba">Pedidos</button>
     <button id="nav-orc" class="aba">Orçamentos</button>
+    <button id="nav-precos" class="aba">Preços</button>
     <button id="nav-solic" class="aba escondido">Solicitações <span id="nav-solic-n" class="contador escondido"></span></button>
   </nav>
   <div class="topo-direita">
@@ -282,6 +284,32 @@
 <section id="tela-solic" class="tela interna">
   <div class="barra-titulo"><h2>Solicitações</h2></div>
   <div id="solic-lista"></div>
+</section>
+
+<!-- 14. Preços: últimos preços de venda e de compra de cada item (só leitura) -->
+<section id="tela-precos" class="tela interna">
+  <div class="barra-titulo">
+    <div><h2>Preços</h2><p class="cinza" id="precos-info"></p></div>
+    <div class="botoes"><button id="precos-atualizar" class="secundario">Atualizar</button></div>
+  </div>
+  <div class="precos-colunas">
+    <div class="precos-coluna precos-vendas">
+      <div class="precos-coluna-topo"><h3>Vendas</h3><span class="cinza peq" id="precos-cont-vendas"></span></div>
+      <div class="precos-caixa-busca">
+        <input type="search" id="precos-busca-vendas" placeholder="Buscar item vendido" autocomplete="off" enterkeyhint="search">
+        <button id="precos-limpar-vendas" class="link" title="Limpar">Limpar</button>
+      </div>
+      <div id="precos-lista-vendas" class="precos-lista"></div>
+    </div>
+    <div class="precos-coluna precos-compras">
+      <div class="precos-coluna-topo"><h3>Compras</h3><span class="cinza peq" id="precos-cont-compras"></span></div>
+      <div class="precos-caixa-busca">
+        <input type="search" id="precos-busca-compras" placeholder="Buscar item comprado" autocomplete="off" enterkeyhint="search">
+        <button id="precos-limpar-compras" class="link" title="Limpar">Limpar</button>
+      </div>
+      <div id="precos-lista-compras" class="precos-lista"></div>
+    </div>
+  </div>
 </section>
 
 <!-- Janela de escolha de produto -->
