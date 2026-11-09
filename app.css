@@ -11,6 +11,9 @@
   --vermelho: #b3262b;
   --verde: #1f7a4a;
   --raio: 10px;
+  --cor-escura: #1F5C6B;
+  --destaque: #1F5C6B;
+  --marca: none;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
@@ -50,7 +53,7 @@ input, select, textarea { font: inherit; color: inherit; }
 .lista-empresas img { height: 90px; max-width: 100%; object-fit: contain; }
 
 /* Topo */
-#topo { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: var(--branco); border-bottom: 3px solid var(--cor); display: flex; align-items: center; gap: 14px; padding: 0 18px; z-index: 10; }
+#topo { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: var(--branco); border-bottom: 3px solid var(--cor); box-shadow: 0 3px 0 var(--destaque); display: flex; align-items: center; gap: 14px; padding: 0 18px; z-index: 10; }
 .topo-logo { width: 46px; height: 46px; border: 1px solid var(--linha); border-radius: 8px; background: var(--branco); padding: 3px; }
 .topo-logo img { width: 100%; height: 100%; object-fit: contain; }
 .topo-empresa { display: flex; flex-direction: column; }
@@ -60,7 +63,7 @@ input, select, textarea { font: inherit; color: inherit; }
 
 /* Botões */
 .botoes { display: flex; gap: 8px; flex-wrap: wrap; }
-.primario { background: var(--cor); color: #fff; border: 0; border-radius: 8px; padding: 9px 16px; font-weight: 600; }
+.primario { background: linear-gradient(var(--cor), var(--cor-escura)); background-color: var(--cor); color: #fff; border: 0; border-radius: 8px; padding: 9px 16px; font-weight: 600; }
 .primario:disabled { opacity: .5; cursor: default; }
 .secundario { background: var(--branco); color: var(--texto); border: 1px solid var(--linha); border-radius: 8px; padding: 8px 14px; }
 .secundario:hover { border-color: var(--cor); }
@@ -254,3 +257,16 @@ input, select, textarea { font: inherit; color: inherit; }
   .aba { padding: 18px 8px 15px; white-space: nowrap; }
   .topo-direita { flex-shrink: 0; }
 }
+
+/* Marca d'água: logo 3D da empresa, fixa ao fundo, discreta; não recebe clique e some na impressão */
+body.com-marca::before {
+  content: ""; position: fixed; inset: 60px 0 0 0; z-index: 5; pointer-events: none;
+  background: var(--marca) center / min(78vw, 640px) auto no-repeat;
+  opacity: .06; mix-blend-mode: multiply;
+}
+html[data-empresa="dom"] body.com-marca::before { background-size: min(86vw, 760px) auto; }
+.aba.ativo { border-bottom-color: var(--cor); }
+.opcao:hover, .lista-empresas button:hover { border-color: var(--cor); }
+.topo-logo { border-color: var(--cor-clara); }
+h2 { color: var(--cor-escura); }
+@media print { body.com-marca::before { display: none; } }
