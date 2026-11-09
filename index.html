@@ -57,7 +57,7 @@
     <button id="topo-trocar" class="link">Trocar empresa</button>
   </div>
   <nav class="topo-nav">
-    <button id="nav-novo" class="aba">Novo pedido</button>
+    <button id="nav-novo" class="aba escondido">Novo pedido</button>
     <button id="nav-pedidos" class="aba">Pedidos</button>
     <button id="nav-orc" class="aba">Orçamentos</button>
     <button id="nav-precos" class="aba">Preços</button>
@@ -70,23 +70,9 @@
   </div>
 </header>
 
-<!-- 5. Tela inicial -->
-<section id="tela-inicio" class="tela interna">
-  <div class="opcoes-inicio">
-    <button id="op-anexar" class="opcao">
-      <span class="icone">📎</span>
-      <strong>Anexar arquivo</strong>
-      <span class="cinza">PDF, foto ou planilha Excel do cliente</span>
-    </button>
-    <button id="op-criar" class="opcao">
-      <span class="icone">✏️</span>
-      <strong>Criar no app</strong>
-      <span class="cinza">Digitar ou colar os itens do Excel</span>
-    </button>
-  </div>
-  <input id="arquivo" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.csv" hidden>
-  <div id="soltar" class="soltar">ou arraste o arquivo para cá</div>
-</section>
+<!-- 5. Tela inicial: agora fica dentro da aba Pedidos (anexar ou criar no app + lista), como na aba Orçamentos -->
+<input id="arquivo" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.csv" hidden>
+<section id="tela-inicio" class="tela interna"></section>
 
 <!-- 6. Seletor de páginas (PDF) / abas (Excel) -->
 <section id="tela-paginas" class="tela interna">
@@ -183,6 +169,20 @@
     <div><h2>Pedidos</h2><p class="cinza" id="ped-resumo"></p></div>
     <div class="botoes"><button id="ped-atualizar" class="secundario">Atualizar</button></div>
   </div>
+  <div class="opcoes-inicio orc-novo">
+    <button id="op-anexar" class="opcao">
+      <span class="icone">📎</span>
+      <strong>Anexar arquivo</strong>
+      <span class="cinza">PDF, foto ou planilha Excel do cliente</span>
+    </button>
+    <button id="op-criar" class="opcao">
+      <span class="icone">✏️</span>
+      <strong>Criar no app</strong>
+      <span class="cinza">Digitar ou colar os itens do Excel</span>
+    </button>
+  </div>
+  <div id="soltar" class="soltar">ou arraste o arquivo para cá</div>
+  <div style="margin-top:18px"></div>
   <div class="bloco filtros">
     <div class="campo"><label>Situação</label>
       <select id="ped-situacao">

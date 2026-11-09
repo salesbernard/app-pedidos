@@ -50,11 +50,11 @@
   function mostrar(id) {
     document.querySelectorAll('.tela').forEach(t => t.classList.toggle('ativa', t.id === id));
     $('#topo').classList.toggle('escondido', TELAS_INTERNAS.indexOf(id) < 0);
-    $('#nav-pedidos').classList.toggle('ativo', id === 'tela-pedidos' || id === 'tela-envio');
     const noOrc = id === 'tela-orcamentos' ||
       (E.contexto === 'orcamento' && ['tela-paginas', 'tela-lendo', 'tela-criar', 'tela-conferencia', 'tela-erro'].indexOf(id) >= 0);
     $('#nav-orc').classList.toggle('ativo', noOrc);
-    $('#nav-novo').classList.toggle('ativo', !noOrc && ['tela-inicio', 'tela-paginas', 'tela-lendo', 'tela-criar'].indexOf(id) >= 0);
+    // aba Pedidos: lista + anexar/criar no app + as telas do pedido em andamento
+    $('#nav-pedidos').classList.toggle('ativo', !noOrc && ['tela-inicio', 'tela-pedidos', 'tela-envio', 'tela-paginas', 'tela-lendo', 'tela-criar', 'tela-conferencia'].indexOf(id) >= 0);
     $('#nav-solic').classList.toggle('ativo', id === 'tela-solic');
     $('#nav-precos').classList.toggle('ativo', id === 'tela-precos');
     window.scrollTo(0, 0);
@@ -203,7 +203,7 @@
   function irInicio() {
     E.pedido = null; $('#arquivo').value = '';
     if (E.contexto === 'orcamento') { abrirOrcamentos(); return; }
-    mostrar('tela-inicio');
+    abrirPedidos();   // anexar / criar no app ficam no topo da aba Pedidos
   }
   function novoPedido() { E.contexto = 'pedido'; irInicio(); }
 
@@ -224,8 +224,9 @@
   /* ---------------- anexar arquivo ---------------- */
   function prepararAnexo() {
     $('#op-anexar').onclick = () => $('#arquivo').click();
-    $('#arquivo').onchange = e => { const f = e.target.files[0]; if (f) tratarArquivo(f); };
-    const zona = $('#tela-inicio');
+    // limpa a escolha logo depois: escolher o mesmo arquivo de novo também funciona
+    $('#arquivo').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) tratarArquivo(f); };
+    const zona = $('#tela-pedidos');
     zona.addEventListener('dragover', e => { e.preventDefault(); $('#soltar').classList.add('sobre'); });
     zona.addEventListener('dragleave', () => $('#soltar').classList.remove('sobre'));
     zona.addEventListener('drop', e => {
@@ -1093,7 +1094,7 @@
     } catch (e) {
       if (/ficou salvo/.test(e.message)) {
         E.listaDesatualizada = true; E.pedido = null; E.contexto = 'pedido';
-        mostrarErro('O Bling não aceitou o envio', e.message, [['Ver pedidos', abrirPedidos], ['Novo pedido', novoPedido]]);
+        mostrarErro('O Bling não aceitou o envio', e.message, [['Ver pedidos', abrirPedidos]]);
       } else avisar('Não consegui enviar: ' + e.message, 8000);
     } finally { b.disabled = false; if (E.pedido) renderResumo(); }
   }
@@ -1103,7 +1104,7 @@
     const p = r.pedido, k = (p.envios || []).length - 1;
     const base = `Pedido nº ${p.numero}: proposta comercial nº ${r.numeroBling || r.idBling} criada no Bling da ${E.empresa.curto}.` +
       (p.totalPendente > 0 ? ` Ficou pendente R$ ${moeda(p.totalPendente)} na aba Pedidos.` : ' Não ficou nada pendente.');
-    const botoes = [['Logística', () => abrirLogistica(p, k)], ['Ver pedidos', abrirPedidos], ['Novo pedido', novoPedido]];
+    const botoes = [['Logística', () => abrirLogistica(p, k)], ['Ver pedidos', abrirPedidos]];
     const para = (p.emails || []).filter(e => e.marcado).map(e => e.email);
     if (!para.length) {
       mostrarErro('Proposta enviada ao Bling', base + ' O cliente não tem e-mail cadastrado: o e-mail não foi enviado.', botoes);
