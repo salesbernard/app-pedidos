@@ -13,6 +13,8 @@ window.CONFIG = {
       logo: 'img/dom_3d.png', cor: '#B3262B', emailPeloServidor: true, emailRemetente: 'ffiscaldom@gmail.com' }
   ],
   LOGO_GRUPO: 'img/montevi_group.png',
+  // Botões de Logística (mensagem para o grupo do WhatsApp): false = desligado (decisão do Bernard em 09/11/2026); true = volta a aparecer
+  LOGISTICA_ATIVA: false,
   // Modelo da mensagem de logística no WhatsApp (1, 2 ou 3)
   MODELO_LOGISTICA: 1,
   SEGUNDOS_ABERTURA: 3

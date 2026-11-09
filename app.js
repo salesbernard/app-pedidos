@@ -1104,7 +1104,7 @@
     const p = r.pedido, k = (p.envios || []).length - 1;
     const base = `Pedido nº ${p.numero}: proposta comercial nº ${r.numeroBling || r.idBling} criada no Bling da ${E.empresa.curto}.` +
       (p.totalPendente > 0 ? ` Ficou pendente R$ ${moeda(p.totalPendente)} na aba Pedidos.` : ' Não ficou nada pendente.');
-    const botoes = [['Logística', () => abrirLogistica(p, k)], ['Ver pedidos', abrirPedidos]];
+    const botoes = (C.LOGISTICA_ATIVA ? [['Logística', () => abrirLogistica(p, k)]] : []).concat([['Ver pedidos', abrirPedidos]]);
     const para = (p.emails || []).filter(e => e.marcado).map(e => e.email);
     if (!para.length) {
       mostrarErro('Proposta enviada ao Bling', base + ' O cliente não tem e-mail cadastrado: o e-mail não foi enviado.', botoes);
@@ -1447,7 +1447,7 @@
           <td><span class="etiqueta ${etiq(sit)}">${esc(sit)}</span></td>
           <td>${aberto ? diasDesde(p['Criado em']) + ' dia(s)' : '—'}</td><td>${esc(p['Pedidos no Bling'] || '')}</td>
           <td style="white-space:nowrap">${aberto ? '<button class="primario pequeno" data-acao="enviar">Enviar</button> <button class="secundario pequeno" data-acao="abrir">Abrir / editar</button> <button class="link" data-acao="cancelar">Cancelar</button>'
-                                               : '<button class="secundario pequeno" data-acao="abrir">Ver</button>'}${p['Pedidos no Bling'] ? ' <button class="secundario pequeno" data-acao="logistica">Logística</button>' : ''}</td></tr>`;
+                                               : '<button class="secundario pequeno" data-acao="abrir">Ver</button>'}${C.LOGISTICA_ATIVA && p['Pedidos no Bling'] ? ' <button class="secundario pequeno" data-acao="logistica">Logística</button>' : ''}</td></tr>`;
       }).join('') + '</tbody></table></div>';
     $('#ped-lista').querySelectorAll('[data-acao]').forEach(b => b.onclick = () => acaoPedido(b.closest('tr').dataset.id, b.dataset.acao));
   }
