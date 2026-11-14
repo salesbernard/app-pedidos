@@ -1097,7 +1097,17 @@
     const agora = P.itens.filter(l => !l.riscado).reduce((s, l) => s + qtdAgora(l) * precoLiq(l), 0);
     const pend = P.itens.filter(l => !l.riscado).reduce((s, l) => s + (l.quantidade - qtdAgora(l)) * precoLiq(l), 0);
     const semCadastro = P.itens.filter(l => !l.riscado && qtdAgora(l) > 0 && !l.produto).length;
-    if (semCadastro && ehNota()) { alert(`A nota fiscal só aceita produto cadastrado. ${semCadastro} item(ns) ainda sem cadastro: peça o cadastro (ou diminua para 0 o que vai agora) e tente de novo.`); return; }
+    if (semCadastro && ehNota()) {
+      // não trava o vendedor: salva o pedido inteiro como pendente e volta; o Bernard envia ao Bling depois que o item for cadastrado
+      const b0 = $('#conf-continuar'); b0.disabled = true; b0.textContent = 'Salvando…';
+      try {
+        await salvarPedido();
+        avisar(`Pedido salvo como pendente: ${semCadastro} item(ns) ainda sem cadastro. A nota é gerada depois que o item for cadastrado.`, 9000);
+        abrirPedidos();
+      } catch (e) { avisar('Não consegui salvar: ' + e.message, 7000); }
+      finally { b0.disabled = false; if (E.pedido) renderResumo(); }
+      return;
+    }
     if (!confirm((ehNota() ? 'Gerar nota fiscal PENDENTE no Bling com ' : 'Enviar ao Bling ') + `${itens.length} item(ns), total R$ ${moeda(agora)}, vencimento ${dataBR(P.venc.escolhido)}?` +
       (ehNota() ? '\n\nA nota não é transmitida: o Bernard confere e transmite no Bling.' : '') +
       (pend > 0.004 ? `\n\nFica pendente na aba Pedidos: R$ ${moeda(pend)}.` : '') + textoEmailConfirmacao(P))) return;
