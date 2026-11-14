@@ -52,6 +52,10 @@
     r.setProperty('--marca', 'url("' + emp.logo + '")');
     document.documentElement.setAttribute('data-empresa', emp.id);
   }
+  // envios antigos foram propostas comerciais; os novos são notas fiscais
+  // empresa já trocou a proposta pela nota fiscal pendente (config.js: notaFiscal: true)
+  function ehNota() { return !!(E.empresa && E.empresa.notaFiscal); }
+  function docBling(e) { return e && e.documento === 'nfe' ? 'nota fiscal' : 'proposta'; }
   function avisar(msg, ms) {
     const el = $('#aviso-rodape');
     el.textContent = msg; el.classList.remove('escondido');
@@ -593,7 +597,7 @@
     if (!P.modo) P.modo = P.id ? 'editar' : 'salvar';
     $('#conf-salvar').classList.toggle('escondido', P.modo === 'emitir');
     $('#conf-continuar').classList.toggle('escondido', P.modo === 'salvar');
-    $('#conf-continuar').textContent = P.modo === 'emitir' ? 'Enviar ao Bling' : 'Emitir agora';
+    $('#conf-continuar').textContent = P.modo === 'emitir' ? (ehNota() ? 'Gerar nota fiscal' : 'Enviar ao Bling') : 'Emitir agora';
     if (P.modo === 'emitir') $('#conf-titulo').textContent = 'Conferir e emitir agora';
     if (!P.ehOrcamento && P.orcamento && P.orcamento.numero) $('#conf-titulo').textContent += ' (do orçamento nº ' + P.orcamento.numero + ')';
     const orc = !!P.ehOrcamento, convertido = orc && P.situacao === 'Convertido em pedido';
@@ -874,7 +878,7 @@
       blocos = [['Itens para emitir agora', moeda(nAgora)], ['Total do pedido', 'R$ ' + moeda(agora + pend)],
                 ['Fica pendente', 'R$ ' + moeda(pend)], ['Frete', 'R$ ' + moeda(frete)], ['Vai para o Bling agora', 'R$ ' + moeda(agora + frete)]];
       const b = $('#conf-continuar');
-      b.textContent = nAgora ? `Enviar ${nAgora} item(ns) ao Bling` : 'Enviar ao Bling';
+      b.textContent = ehNota() ? (nAgora ? `Gerar nota com ${nAgora} item(ns)` : 'Gerar nota fiscal') : (nAgora ? `Enviar ${nAgora} item(ns) ao Bling` : 'Enviar ao Bling');
     } else {
       const somaQtd = ativos.reduce((s, l) => s + (l.quantidade || 0), 0);
       const bruto = ativos.reduce((s, l) => s + arred(l.quantidade * l.preco), 0);
@@ -889,7 +893,7 @@
     const pendente = ativos.reduce((s, l) => s + arred(Math.max(0, l.quantidade - (l.enviada || 0)) * precoLiq(l)), 0);
     $('#conf-saldo').innerHTML = envios.length
       ? '<h3>Já enviado ao Bling</h3>' + envios.map((e, k) => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:4px 0">` +
-          `<span>Entrega ${k + 1} · proposta nº ${esc(e.numeroBling || e.idBling)} — ${fmtData(e.data)} — R$ ${moeda(e.total)} <span class="cinza">(${esc(e.vendedor)})</span></span>` +
+          `<span>Entrega ${k + 1} · ${docBling(e)} nº ${esc(e.numeroBling || e.idBling)} — ${fmtData(e.data)} — R$ ${moeda(e.total)} <span class="cinza">(${esc(e.vendedor)})</span></span>` +
           `<button class="secundario pequeno" data-pdf="${k}">PDF</button><button class="secundario pequeno" data-email="${k}">${e.email ? 'E-mail enviado · reenviar' : 'Enviar e-mail'}</button></div>`).join('') +
         `<p style="margin-bottom:0"><strong>Pendente: R$ ${moeda(pendente)}</strong></p>`
       : '';
@@ -1092,10 +1096,11 @@
     P.itens.forEach((l, i) => { if (!l.riscado && qtdAgora(l) > 0) itens.push({ indice: i, quantidade: qtdAgora(l) }); });
     const agora = P.itens.filter(l => !l.riscado).reduce((s, l) => s + qtdAgora(l) * precoLiq(l), 0);
     const pend = P.itens.filter(l => !l.riscado).reduce((s, l) => s + (l.quantidade - qtdAgora(l)) * precoLiq(l), 0);
-    const semCadastro = P.itens.filter(l => !l.riscado && qtdAgora(l) > 0 && l.itemNovo).length;
-    if (!confirm(`Enviar ao Bling ${itens.length} item(ns), total R$ ${moeda(agora)}, vencimento ${dataBR(P.venc.escolhido)}?` +
-      (pend > 0.004 ? `\n\nFica pendente na aba Pedidos: R$ ${moeda(pend)}.` : '') +
-      (semCadastro ? `\n\nAtenção: ${semCadastro} item(ns) com cadastro pendente.` : '') + textoEmailConfirmacao(P))) return;
+    const semCadastro = P.itens.filter(l => !l.riscado && qtdAgora(l) > 0 && !l.produto).length;
+    if (semCadastro && ehNota()) { alert(`A nota fiscal só aceita produto cadastrado. ${semCadastro} item(ns) ainda sem cadastro: peça o cadastro (ou diminua para 0 o que vai agora) e tente de novo.`); return; }
+    if (!confirm((ehNota() ? 'Gerar nota fiscal PENDENTE no Bling com ' : 'Enviar ao Bling ') + `${itens.length} item(ns), total R$ ${moeda(agora)}, vencimento ${dataBR(P.venc.escolhido)}?` +
+      (ehNota() ? '\n\nA nota não é transmitida: o Bernard confere e transmite no Bling.' : '') +
+      (pend > 0.004 ? `\n\nFica pendente na aba Pedidos: R$ ${moeda(pend)}.` : '') + textoEmailConfirmacao(P))) return;
     const b = $('#conf-continuar'); b.disabled = true; b.textContent = 'Enviando…';
     try {
       const r = await chamar(E.empresa, 'salvarEEnviar', { pedido: serializarPedido(), itens, vencimento: vencimentoParaEnvio(P) });
@@ -1110,23 +1115,24 @@
     } finally { b.disabled = false; if (E.pedido) renderResumo(); }
   }
 
-  // Depois de criar a proposta no Bling: o e-mail ao cliente sai automaticamente (se o cliente tiver e-mail)
+  // Depois de criar a nota fiscal pendente no Bling: o e-mail ao cliente sai automaticamente (se o cliente tiver e-mail)
   async function telaSucessoEnvio(r, enviarEmail) {
     const p = r.pedido, k = (p.envios || []).length - 1;
-    const base = `Pedido nº ${p.numero}: proposta comercial nº ${r.numeroBling || r.idBling} criada no Bling da ${E.empresa.curto}.` +
+    const base = (r.documento === 'nfe' ? `Pedido nº ${p.numero}: nota fiscal nº ${r.numeroBling || r.idBling} criada como PENDENTE no Bling da ${E.empresa.curto} (falta conferir e transmitir no Bling).`
+      : `Pedido nº ${p.numero}: proposta comercial nº ${r.numeroBling || r.idBling} criada no Bling da ${E.empresa.curto}.`) +
       (p.totalPendente > 0 ? ` Ficou pendente R$ ${moeda(p.totalPendente)} na aba Pedidos.` : ' Não ficou nada pendente.');
     const botoes = (C.LOGISTICA_ATIVA ? [['Logística', () => abrirLogistica(p, k)]] : []).concat([['Ver pedidos', abrirPedidos]]);
     const para = (p.emails || []).filter(e => e.marcado).map(e => e.email);
     if (!para.length) {
-      mostrarErro('Proposta enviada ao Bling', base + ' O cliente não tem e-mail cadastrado: o e-mail não foi enviado.', botoes);
+      mostrarErro(r.documento === 'nfe' ? 'Nota fiscal criada no Bling' : 'Proposta enviada ao Bling', base + ' O cliente não tem e-mail cadastrado: o e-mail não foi enviado.', botoes);
       return;
     }
     if (enviarEmail === false) {
-      mostrarErro('Proposta enviada ao Bling', base + ' O e-mail não foi enviado (opção desmarcada).',
+      mostrarErro(r.documento === 'nfe' ? 'Nota fiscal criada no Bling' : 'Proposta enviada ao Bling', base + ' O e-mail não foi enviado (opção desmarcada).',
         [['Enviar e-mail ao cliente', () => abrirEmail(p.id, k)]].concat(botoes));
       return;
     }
-    mostrarErro('Proposta enviada ao Bling', base + ' Enviando o e-mail ao cliente…', botoes);
+    mostrarErro(r.documento === 'nfe' ? 'Nota fiscal criada no Bling' : 'Proposta enviada ao Bling', base + ' Enviando o e-mail ao cliente…', botoes);
     try {
       const doc = await chamar(E.empresa, 'documentoEnvio', { id: p.id, entrega: k });
       const env = await enviarPeloGmail({ para: doc.para, cc: doc.cc, assunto: doc.assunto, texto: doc.texto, anexos: doc.anexos, logo: doc.logoBase64 });
@@ -1311,6 +1317,9 @@
     const linhas = P.itens.filter(l => !l.riscado && (l.quantidade - (l.enviada || 0)) > 0.0001);
     if (!linhas.length) { avisar('Este pedido não tem nada pendente para enviar.'); abrirPedidos(); return; }
     E.envio = linhas.map(l => ({ l, marcado: true, q: arred(l.quantidade - (l.enviada || 0)) }));
+    $('#envio-titulo').textContent = ehNota() ? 'Gerar nota fiscal' : 'Enviar ao Bling';
+    $('#envio-explica').textContent = ehNota() ? 'Marque só o que vai na nota agora. A nota fica PENDENTE no Bling (conferir e transmitir lá). O que não for marcado fica pendente na aba Pedidos.'
+      : 'Marque só o que vai emitir nota agora. O que não for enviado fica pendente na aba Pedidos.';
     const c = P.cliente || {};
     $('#envio-cliente').innerHTML = `<strong>${esc(c.nomeCurto || c.nome || '')}</strong>` +
       `<span class="cinza"> · ${c.cnpj ? 'CNPJ ' + fmtCnpj(c.cnpj) + ' · ' : ''}${P.campos.numeroCliente ? 'OC ' + esc(P.campos.numeroCliente) + ' · ' : ''}${esc(P.id || '')}</span>` +
@@ -1360,7 +1369,7 @@
     $('#envio-resumo').innerHTML = `<div class="total"><span>Vai para o Bling agora</span><strong>R$ ${moeda(agora)}</strong></div>` +
       `<div><span>Itens</span><strong>${n}</strong></div><div><span>Fica pendente no pedido</span><strong>R$ ${moeda(fica)}</strong></div>`;
     $('#envio-enviar').disabled = n === 0;
-    $('#envio-enviar').textContent = n ? `Enviar ${n} item(ns) ao Bling` : 'Enviar ao Bling';
+    $('#envio-enviar').textContent = ehNota() ? (n ? `Gerar nota com ${n} item(ns)` : 'Gerar nota fiscal') : (n ? `Enviar ${n} item(ns) ao Bling` : 'Enviar ao Bling');
   }
 
   async function enviarAoBling() {
@@ -1375,10 +1384,11 @@
     if (!itens.length) { avisar('Marque pelo menos um item.'); return; }
     if (!P.venc || !P.venc.escolhido) { avisar('Informe o vencimento.'); return; }
     if (!(await prepararGmailSeNecessario(P))) return;
-    const semCadastro = E.envio.filter(e => e.marcado && e.l.itemNovo).length;
+    const semCadastro = E.envio.filter(e => e.marcado && !e.l.produto).length;
+    if (semCadastro && ehNota()) { alert(`A nota fiscal só aceita produto cadastrado. ${semCadastro} item(ns) marcados ainda sem cadastro: peça o cadastro ou desmarque e tente de novo.`); return; }
     const total = $('#envio-resumo .total strong').textContent;
-    if (!confirm(`Enviar ao Bling ${itens.length} item(ns), total ${total}, vencimento ${dataBR(P.venc.escolhido)}?` +
-      (semCadastro ? `\n\nAtenção: ${semCadastro} item(ns) com cadastro pendente.` : '') +
+    if (!confirm((ehNota() ? 'Gerar nota fiscal PENDENTE no Bling com ' : 'Enviar ao Bling ') + `${itens.length} item(ns), total ${total}, vencimento ${dataBR(P.venc.escolhido)}?` +
+      (ehNota() ? '\n\nA nota não é transmitida: o Bernard confere e transmite no Bling.' : '') +
       '\n\nO que não for enviado fica pendente no pedido.' + textoEmailConfirmacao(P))) return;
     const b = $('#envio-enviar'); b.disabled = true; b.textContent = 'Enviando…';
     try {
@@ -1717,7 +1727,7 @@
     if (k == null) k = p.envios.length - 1;
     const L = { endereco: enderecoDoPedido(p), lat: null, lng: null, alterado: false, cargaPesada: null, veiculo: '' };
     const escolherEntrega = p.envios.length > 1
-      ? `<div class="campo"><label>Entrega</label><select id="lg-entrega">${p.envios.map((e, i) => `<option value="${i}" ${i === k ? 'selected' : ''}>Entrega ${i + 1} · ${fmtData(e.data)} · proposta ${esc(e.numeroBling || e.idBling)}</option>`).join('')}</select></div>` : '';
+      ? `<div class="campo"><label>Entrega</label><select id="lg-entrega">${p.envios.map((e, i) => `<option value="${i}" ${i === k ? 'selected' : ''}>Entrega ${i + 1} · ${fmtData(e.data)} · ${docBling(e)} ${esc(e.numeroBling || e.idBling)}</option>`).join('')}</select></div>` : '';
     const passo1 = () => {
       const corpo = abrirJanela('Logística — pedido nº ' + p.numero, `${escolherEntrega}
         <p style="margin-top:8px">Endereço de entrega:</p><p><strong>${esc(L.endereco || 'sem endereço no pedido')}</strong></p>
