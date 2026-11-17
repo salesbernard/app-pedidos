@@ -999,6 +999,8 @@
       if (!P.venc || !P.venc.escolhido) faltas.push('informe o vencimento');
     }
     ativos.forEach((l, i) => {
+      // item já totalmente enviado ao Bling (saldo 0): não entra na nota nem trava a validação
+      if ((Number(l.enviada) || 0) > 0 && (Number(l.quantidade) || 0) - (Number(l.enviada) || 0) <= 0.0001) return;
       if (!l.produto && !l.itemNovo) faltas.push(`item ${P.itens.indexOf(l) + 1}: escolha o produto ou crie item novo`);
       if (!(l.quantidade > 0)) faltas.push(`item ${P.itens.indexOf(l) + 1}: quantidade`);
       if (!(l.preco > 0)) faltas.push(`item ${P.itens.indexOf(l) + 1}: preço`);
