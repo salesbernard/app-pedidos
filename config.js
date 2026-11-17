@@ -7,12 +7,15 @@ window.CONFIG = {
   EMPRESAS: [
     { id: 'montevideu', nome: 'Comercial Montevideu', curto: 'Montevideu', cnpj: '47563591000179',
       url: 'https://script.google.com/macros/s/AKfycbxHZzTiaxcWWmwaIcbd5VFe2BCh9nzYG0Egwnx2aQvKllIL_ZCJNm4qu0tpMimLKE9y/exec',
-      logo: 'img/montevideu_3d.png', notaFiscal: true, cor: '#0B63B8', corEscura: '#07375D', destaque: '#FECF04', fundo: '#EEF4FA' },
+      logo: 'img/montevideu_3d.png', notaFiscal: true, cor: '#0B63B8', corEscura: '#07375D', destaque: '#FECF04', fundo: '#EEF4FA',
+      // Apelidos de cliente: nome que aparece na cotação/pedido -> CNPJ do cadastro que deve ser usado
+      apelidos: { 'mahalo': '07551590000190' } },   // MAHALO -> PEREIRA CONFECÇÕES (pedido do Bernard, 17/11/2026)
     { id: 'dom', nome: 'DOM Multicomércio', curto: 'DOM', cnpj: '61265684000148',
       url: 'https://script.google.com/macros/s/AKfycbxxMdt93kx_PNh28ca3LMqEtydm_cjeVUJIyjt0NY0yIUc9xzVxZj1OkrIBYIYSSblu/exec',
       logo: 'img/dom_3d.png', notaFiscal: true, cor: '#D71F16', corEscura: '#6F1110', destaque: '#6F1110', fundo: '#FEF8F7', emailPeloServidor: true, emailRemetente: 'ffiscaldom@gmail.com' }
   ],
   LOGO_GRUPO: 'img/montevi_group.png',
+  // apelidos (por empresa): quando o nome escrito aparece no cliente do documento, o app escolhe o cliente do CNPJ indicado.
   // notaFiscal: true = o envio cria NOTA FISCAL PENDENTE no Bling (em vez de proposta comercial).
   // Botões de Logística (mensagem para o grupo do WhatsApp): false = desligado (decisão do Bernard em 09/11/2026); true = volta a aparecer
   LOGISTICA_ATIVA: false,

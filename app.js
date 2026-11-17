@@ -483,11 +483,28 @@
   }
 
   /* ---------------- cliente ---------------- */
+  // Apelido de cliente (config.js, apelidos da empresa): ex. "mahalo" no documento -> cadastro da PEREIRA CONFECÇÕES
+  function clientePorApelido(texto) {
+    const ap = (E.empresa && E.empresa.apelidos) || {}, d = E.dados[E.empresa.id];
+    const alvo = ' ' + Busca.normalizar(texto) + ' ';
+    for (const nome in ap) {
+      const chave = Busca.normalizar(nome);
+      if (!chave || alvo.indexOf(' ' + chave + ' ') < 0) continue;
+      const reg = d.clientes.find(c => c[0] === soDigitos(ap[nome]));
+      if (reg) return reg;
+    }
+    return null;
+  }
+
   function identificarCliente() {
     const P = E.pedido, d = E.dados[E.empresa.id];
     const cnpj = P.clienteDoc.cnpj;
     P.clienteSugestoes = [];
     P.clienteSituacao = '';
+    const docLido = P.documento || {};
+    const apelido = clientePorApelido([P.clienteDoc.nome, P.campos.unidade, docLido.textoCabecalho,
+      (docLido.cnpjs || []).filter(c => !/fornec/i.test(c.papel || '')).map(c => c.nome).join(' ')].filter(Boolean).join(' '));
+    if (apelido) { escolherCliente(apelido, 'apelido'); return; }
     if (cnpj) {
       const exato = d.clientes.find(c => c[0] === cnpj);
       if (exato) { escolherCliente(exato, 'cadastrado'); return; }
@@ -638,6 +655,7 @@
       const c = P.cliente;
       let etiqueta = '';
       if (P.clienteSituacao === 'cadastrado') etiqueta = '<span class="etiqueta">Cadastrado</span>';
+      else if (P.clienteSituacao === 'apelido') etiqueta = '<span class="etiqueta">Cadastrado (apelido do documento)</span>';
       else if (P.clienteSituacao === 'filial_nova') etiqueta = '<span class="etiqueta amarela">Filial nova de ' + esc(c.filialDe[1]) + '</span>';
       else if (c.novo) etiqueta = P.ehOrcamento ? '<span class="etiqueta amarela">Cliente novo: vira solicitação para o Bernard quando o orçamento virar pedido</span>'
         : '<span class="etiqueta amarela">Cliente novo: vai como solicitação para o Bernard</span>';
@@ -698,7 +716,9 @@
       const t = inp.value.trim();
       const dig = soDigitos(t);
       if (dig.length >= 8) { desenhar(d.clientes.filter(c => c[0].indexOf(dig) === 0).slice(0, 8)); return; }
-      desenhar(t ? Busca.buscar(d.indCli, t, 8).map(r => d.clientes[r.produto[0]]) : sugestoesIniciais.slice(0, 5));
+      if (!t) { desenhar(sugestoesIniciais.slice(0, 5)); return; }
+      const ap = clientePorApelido(t), achados = Busca.buscar(d.indCli, t, 8).map(r => d.clientes[r.produto[0]]);
+      desenhar(ap ? [ap].concat(achados.filter(c => c !== ap)).slice(0, 8) : achados);
     };
     if (permitirNovo) {
       alvo.querySelector('[data-novo]').onclick = () => {
